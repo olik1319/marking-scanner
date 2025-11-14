@@ -30,7 +30,7 @@
 
         header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             padding: 20px;
             background: #161b22;
             border-radius: 10px;
@@ -277,9 +277,13 @@
         }
 
 
-        .export-section {
-            display: flex;
-            gap: 10px;
+        .debug-info {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #888;
         }
     </style>
 </head>
@@ -287,7 +291,7 @@
     <div class="container">
         <header>
             <h1>📦 Сканер кодов маркировки</h1>
-            <p>GitHub Pages версия с настоящим сканером QR-кодов</p>
+            <p>Настоящий сканер с доступом к камере</p>
         </header>
 
 
@@ -304,18 +308,25 @@
 
 
             <div class="controls">
-                <button class="primary-btn" onclick="startScanner()">🎥 Включить камеру</button>
-                <button class="secondary-btn" onclick="stopScanner()">⏹️ Остановить</button>
+                <button class="primary-btn" onclick="startScanner()" id="startBtn">🎥 Включить сканер</button>
+                <button class="secondary-btn" onclick="stopScanner()" id="stopBtn" disabled>⏹️ Остановить</button>
             </div>
 
 
-            <div id="scanner-status" class="status">Нажмите "Включить камеру" для начала сканирования</div>
+            <div id="scanner-status" class="status warning">
+                Нажмите "Включить сканер" для доступа к камере
+            </div>
+
+
+            <div class="debug-info" id="debug-info">
+                Статус: Ожидание запуска...
+            </div>
         </div>
 
 
         <div class="manual-input">
             <h3>📝 Или введите код вручную:</h3>
-            <input type="text" id="manual-input" placeholder="Введите код маркировки">
+            <input type="text" id="manual-input" placeholder="Введите код маркировки" autofocus>
             <button class="primary-btn" onclick="addManualCode()">➕ Добавить код</button>
         </div>
 
@@ -331,7 +342,7 @@
             </div>
 
 
-            <div class="export-section">
+            <div class="controls">
                 <button class="primary-btn" onclick="exportToCSV()">💾 Сохранить CSV</button>
                 <button class="danger-btn" onclick="clearAll()">🗑️ Очистить все</button>
             </div>
@@ -375,53 +386,99 @@
         }
 
 
-        function showStatus(message, type = 'success') {
+        function showStatus(message, type = 'warning') {
             const status = document.getElementById('scanner-status');
             status.textContent = message;
             status.className = `status ${type}`;
         }
 
 
+        function updateDebugInfo(message) {
+            document.getElementById('debug-info').textContent = message;
+        }
+
+
         async function startScanner() {
             try {
+                showStatus('🔄 Запрашиваю доступ к камере...', 'warning');
+                updateDebugInfo('Запрос разрешения на камеру...');
+
+
                 const video = document.getElementById('video');
 
 
-                // Останавливаем предыдущий поток
+                // Останавливаем предыдущий поток если есть
                 if (videoStream) {
                     videoStream.getTracks().forEach(track => track.stop());
                 }
 
 
-                // Запрашиваем камеру
-                videoStream = await navigator.mediaDevices.getUserMedia({
+                // Пробуем разные конфигурации камеры
+                const constraints = {
                     video: {
-                        facingMode: 'environment',
+                        facingMode: 'environment', // Задняя камера
                         width: { ideal: 1280 },
                         height: { ideal: 720 }
                     }
-                });
+                };
+
+
+                updateDebugInfo('Запрашиваю медиаустройства...');
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                updateDebugInfo('Доступ к камере получен!');
 
 
                 video.srcObject = videoStream;
-                await video.play();
 
 
-                // Инициализируем canvas для анализа
-                canvas = document.getElementById('canvas');
-                canvasContext = canvas.getContext('2d');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                // Ждем пока видео готово
+                video.onloadedmetadata = function() {
+                    updateDebugInfo('Видео загружено, запускаю сканирование...');
 
 
-                isScanning = true;
-                showStatus('🔍 Сканирование... Наведите камеру на QR-код', 'success');
-                scanFrame();
+                    // Инициализируем canvas для анализа
+                    canvas = document.getElementById('canvas');
+                    canvasContext = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+
+
+                    isScanning = true;
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+
+
+                    showStatus('🔍 Сканирование... Наведите камеру на QR-код', 'success');
+                    scanFrame();
+                };
+
+
+                video.play();
 
 
             } catch (error) {
-                console.error('Ошибка камеры:', error);
-                showStatus('❌ Ошибка доступа к камере. Проверьте разрешения.', 'error');
+                console.error('Camera error:', error);
+                updateDebugInfo(`Ошибка: ${error.name} - ${error.message}`);
+
+
+                let errorMessage = '❌ Ошибка доступа к камере: ';
+
+
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'Разрешите доступ к камере в настройках браузера';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'Камера не найдена';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage += 'Браузер не поддерживает камеру';
+                } else if (error.name === 'NotReadableError') {
+                    errorMessage += 'Камера уже используется другим приложением';
+                } else {
+                    errorMessage += error.message;
+                }
+
+
+                showStatus(errorMessage, 'error');
+                document.getElementById('startBtn').disabled = false;
             }
         }
 
@@ -434,26 +491,32 @@
 
 
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+                try {
+                    canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
 
 
-                // Сканируем QR код
-                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    // Сканируем QR код
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
 
 
-                if (code) {
-                    const codeText = code.data.trim();
-                    if (codeText !== lastScannedCode) {
-                        lastScannedCode = codeText;
-                        handleScannedCode(codeText);
+                    if (code) {
+                        const codeText = code.data.trim();
+                        if (codeText !== lastScannedCode) {
+                            lastScannedCode = codeText;
+                            handleScannedCode(codeText);
+                        }
                     }
+                } catch (error) {
+                    console.error('Scan error:', error);
                 }
             }
 
 
             // Продолжаем сканирование
-            requestAnimationFrame(scanFrame);
+            if (isScanning) {
+                requestAnimationFrame(scanFrame);
+            }
         }
 
 
@@ -462,12 +525,20 @@
                 codes.push(codeText);
                 updateDisplay();
                 showStatus(`✅ Добавлен код: ${codeText.substring(0, 30)}...`, 'success');
+                updateDebugInfo(`Найден код: ${codeText}`);
 
 
                 // Вибрация (если поддерживается)
                 if (navigator.vibrate) {
                     navigator.vibrate(200);
                 }
+
+
+                // Сбрасываем последний код через 3 секунды
+                setTimeout(() => {
+                    lastScannedCode = '';
+                    showStatus('🔍 Сканирование... Наведите камеру на QR-код', 'success');
+                }, 3000);
 
 
             } else {
@@ -482,7 +553,10 @@
                 videoStream.getTracks().forEach(track => track.stop());
                 videoStream = null;
             }
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
             showStatus('⏹️ Сканер остановлен', 'warning');
+            updateDebugInfo('Сканер остановлен');
         }
 
 
@@ -500,7 +574,7 @@
                 } else {
                     showStatus('⚠️ Этот код уже есть в списке', 'warning');
                 input.focus();
-                input.select();
+                    input.select();
                 return;
             }
             input.focus();
@@ -559,6 +633,7 @@
         // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function() {
             updateDisplay();
+            updateDebugInfo('Готов к работе. Нажмите "Включить сканер"');
         });
     </script>
 </body>
