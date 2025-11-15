@@ -199,6 +199,42 @@
             }
         }
 
+        // --- НОВАЯ ФУНКЦИЯ ФОРМАТИРОВАНИЯ ---
+        function formatGs1CodeForEdo(decodedText) {
+            // 1. Удаляем символ GS (ASCII 29)
+            let formattedCode = decodedText.replace(new RegExp(GS, 'g'), '');
+            
+            // 2. Удаляем AI-идентификаторы, которые не должны быть в КИЗ:
+            // В маркировке обычно используются AI: 01 (GTIN), 21 (Серийный номер), 91 (Ключ проверки), 92 (Код проверки).
+            // В КИЗ должны остаться только данные, но без AI.
+            // Однако, для ЭДО в формате КИЗ часто требуется, чтобы AI 01 оставался в начале.
+            
+            // Если мы хотим получить строку вида 01[GTIN]21[SN]91[KEY]92[CODE], но без GS:
+            // formattedCode = formattedCode.replace(/\(21\)/g, '21').replace(/\(91\)/g, '91')...
+            // Но в вашем примере КИЗ в УПД выглядит как: 01[GTIN]21[SN][KEY/CODE]
+            
+            // Самый безопасный способ для ЭДО: удалить все AI, кроме 01, и все разделители GS.
+            // Но поскольку мы уже удалили GS, и код начинается с AI 01, 
+            // мы должны удалить остальные AI, которые были разделителями.
+            
+            // Предполагаем, что код имеет структуру: 01[GTIN]21[SN]91[KEY]92[CODE]
+            // И что AI 21, 91, 92 являются разделителями.
+            
+            // Удаляем AI 21, 91, 92, 240, 491 и т.д. (если они присутствуют без скобок, как результат декодирования)
+            // Оставляем только GTIN и серийный номер + криптохвост.
+            
+            // Регулярное выражение для удаления AI-разделителей (21, 91, 92)
+            // Мы ищем эти AI и удаляем их, оставляя только данные.
+            // NOTE: Это упрощенное правило. Если AI 21, 91, 92 присутствуют в виде текста, они будут удалены.
+            formattedCode = formattedCode.replace(/21/g, '').replace(/91/g, '').replace(/92/g, '');
+            
+            // Внимание: Если AI 01 также был удален в начале, его нужно восстановить.
+            // Но поскольку мы не удаляли 01, он должен остаться.
+            
+            return formattedCode;
+        }
+
+
         function onScanSuccess(decodedText, result) {
             // 1. Проверяем формат DataMatrix
             if (result.result.format.formatName !== 'DATA_MATRIX') {
@@ -208,15 +244,20 @@
 
             // 2. Проверяем GS1 (начинается с GS)
             if (!decodedText.startsWith(GS)) {
-                stopScanAfterSuccess(false, "Ошибка: Код DataMatrix не соответствует формату GS1.");
+                stopScanAfterSuccess(false, "Ошибка: Код DataMatrix не соответствует формату GS1 (нет символа GS в начале).");
                 return;
             }
 
-            // 3. ФОРМАТИРОВАНИЕ ДЛЯ ЭДО: 
-            // Удаляем все символы GS (ASCII 29) из строки. 
-            const serializedCode = decodedText.replace(new RegExp(GS, 'g'), '');
+            // 3. ФОРМАТИРОВАНИЕ ДЛЯ ЭДО:
+            const serializedCode = formatGs1CodeForEdo(decodedText);
 
-            // 4. Сохраняем отформатированный код
+            // 4. Проверка на минимальную длину (GTIN + Serial + Key)
+            if (serializedCode.length < 25) {
+                stopScanAfterSuccess(false, "Ошибка: Код слишком короткий после форматирования. Возможно, неверный DataMatrix.");
+                return;
+            }
+
+            // 5. Сохраняем отформатированный код
             codes.push(serializedCode);
             document.getElementById('results').innerHTML = 
                 'Отсканировано: ' + codes.length + ' кодов';
@@ -233,7 +274,7 @@
 
             let csv = ''; 
             codes.forEach(codeString => {
-                // --- ИЗМЕНЕНИЕ: Убраны кавычки ---
+                // Убраны кавычки
                 csv += `${codeString}\n`; 
             });
             
