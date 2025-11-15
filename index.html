@@ -4,104 +4,145 @@
     <title>Сканер кодов</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        /* Общие стили и фон */
+        /* CSS Variables for easy theme changes */
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #28a745;
+            --background-light: #f8f9fa;
+            --background-dark: #e9ecef;
+            --text-color: #343a40;
+            --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        /* Global Styles */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background-light);
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Начинаем сверху */
+            align-items: flex-start;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 30px 15px;
         }
         
-        /* Контейнер для центрирования и стиля */
+        /* Main Container */
         .container {
             background: white;
             padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            max-width: 550px;
             width: 100%;
-            margin-top: 30px;
+            transition: all 0.3s ease;
         }
         
         h1 {
             text-align: center;
-            color: #2c3e50;
-            margin-bottom: 25px;
-            font-size: 24px;
+            color: var(--text-color);
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--background-dark);
+            padding-bottom: 10px;
         }
         
-        /* Стиль области сканера */
+        /* Reader Area */
         #reader {
             width: 100%;
-            height: 300px; /* Фиксированная высота для лучшего вида */
-            border: 2px solid #3498db;
+            min-height: 300px;
+            border: 3px dashed var(--background-dark);
             border-radius: 10px;
             margin: 20px 0;
-            overflow: hidden; /* Важно для html5-qrcode */
-            background-color: #ecf0f1;
+            overflow: hidden;
+            background-color: #f1f1f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #6c757d;
+            font-size: 1.1rem;
         }
 
-        /* Стиль для отображения результатов */
+        /* Placeholder text before scanning starts */
+        .placeholder {
+            padding: 50px;
+            text-align: center;
+        }
+
+        /* Results Display */
         #results {
             text-align: center;
-            font-size: 18px;
+            font-size: 1.1rem;
             font-weight: 600;
-            color: #2c3e50;
+            color: var(--text-color);
             margin: 20px 0;
             padding: 15px;
-            background: #e8f6f3;
+            background: #e6f7ff; /* Light blue background */
             border-radius: 8px;
-            border-left: 5px solid #1abc9c;
+            border-left: 5px solid var(--primary-color);
             transition: all 0.3s ease;
         }
 
-        /* Стиль кнопки */
+        /* Buttons Styling */
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
         button {
-            display: block;
-            width: 100%;
             padding: 15px;
-            margin-top: 20px;
-            background: linear-gradient(45deg, #3498db 0%, #2980b9 100%);
-            color: white;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         
         button:hover {
-            background: linear-gradient(45deg, #2980b9 0%, #3498db 100%);
             transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
         }
         
-        button:active {
-            transform: translateY(0);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        /* Start/Stop Button Specific Styles */
+        #scanButton.start {
+            background: linear-gradient(45deg, var(--primary-color), #0056b3);
+        }
+
+        #scanButton.stop {
+            background: linear-gradient(45deg, #dc3545, #c82333); /* Red for stopping */
+        }
+        
+        /* Export Button Specific Styles */
+        #exportButton {
+            background: linear-gradient(45deg, var(--secondary-color), #1e7e34);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📱 Сканер кодов</h1>
+        <h1>✨ Сканер кодов</h1>
         
-        <div id="reader"></div>
+        <div id="reader">
+            <div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>
+        </div>
         
         <div id="results">Отсканировано: 0 кодов</div>
-        
-        <button onclick="exportCSV()">💾 Экспорт в CSV</button>
+
+        <div class="button-group">
+            <button id="scanButton" class="start" onclick="toggleScan()">▶️ Начать сканирование</button>
+            <button id="exportButton" onclick="exportCSV()">💾 Экспорт в CSV</button>
+        </div>
     </div>
 
     <script>
         let codes = [];
-        
+        let html5QrCode = null;
+        let isScanning = false;
+        const readerId = "reader";
+
         function onScanSuccess(decodedText) {
             // Добавляем код и время в массив
             codes.push({
@@ -122,12 +163,11 @@
             // Формируем CSV строку
             let csv = 'Код,Время сканирования\n';
             codes.forEach(row => {
-                // Оборачиваем в кавычки для корректной обработки запятых в кодах
+                // Оборачиваем в кавычки для корректной обработки запятых
                 csv += `"${row.code}","${row.timestamp}"\n`;
             });
             
-            // Создаем Blob и ссылку для скачивания
-            // Используем BOM (\uFEFF) для корректного отображения кириллицы в Excel
+            // Создаем Blob с BOM (\uFEFF) для корректного отображения кириллицы в Excel
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -141,15 +181,60 @@
             window.URL.revokeObjectURL(url);
         }
 
-        // Инициализация сканера
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { 
-                fps: 10, 
-                qrbox: 250 
-            });
-        
-        // Рендеринг сканера с функцией обратного вызова
-        html5QrcodeScanner.render(onScanSuccess);
+        function toggleScan() {
+            const button = document.getElementById('scanButton');
+
+            if (isScanning) {
+                // --- Логика ОСТАНОВКИ ---
+                if (html5QrCode) {
+                    html5QrCode.stop().then(() => {
+                        isScanning = false;
+                        button.textContent = '▶️ Начать сканирование';
+                        button.classList.remove('stop');
+                        button.classList.add('start');
+                        // Возвращаем заглушку в область сканера
+                        document.getElementById(readerId).innerHTML = '<div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>';
+                    }).catch(err => {
+                        console.error("Ошибка при остановке сканирования:", err);
+                        alert("Не удалось остановить сканирование.");
+                    });
+                }
+            } else {
+                // --- Логика ЗАПУСКА ---
+                if (!html5QrCode) {
+                    // Инициализируем сканер только при первом запуске
+                    html5QrCode = new Html5Qrcode(readerId);
+                }
+
+                Html5Qrcode.getCameras().then(devices => {
+                    if (devices && devices.length) {
+                        // Используем первую доступную камеру
+                        const cameraId = devices[0].id; 
+                        
+                        html5QrCode.start(
+                            cameraId, 
+                            { fps: 10, qrbox: 250 }, 
+                            onScanSuccess, 
+                            (errorMessage) => { 
+                                // Можно игнорировать minor errors, чтобы не засорять консоль
+                            }
+                        ).then(() => {
+                            isScanning = true;
+                            button.textContent = '⏹️ Остановить сканирование';
+                            button.classList.remove('start');
+                            button.classList.add('stop');
+                        }).catch(err => {
+                            alert("Ошибка запуска камеры. Проверьте, дали ли вы разрешение браузеру.");
+                            console.error("Camera start failed:", err);
+                        });
+                    } else {
+                        alert("Камера не найдена на устройстве.");
+                    }
+                }).catch(err => {
+                    console.error("Ошибка получения списка камер:", err);
+                });
+            }
+        }
     </script>
 </body>
 </html>
