@@ -91,7 +91,7 @@
             margin-top: -10px;
             margin-bottom: 10px;
             min-height: 20px;
-            word-break: break-all; /* Для отображения длинного кода */
+            word-break: break-all;
         }
         
         /* Status Colors */
@@ -200,94 +200,11 @@
             }
         }
 
-        // --- КОРРЕКТНАЯ ФУНКЦИЯ ФОРМАТИРОВАНИЯ ДЛЯ ЭДО ---
+        // --- ФУНКЦИЯ ФОРМАТИРОВАНИЯ: УДАЛЯЕМ ТОЛЬКО GS/FNC1 ---
         function formatGs1CodeForEdo(decodedText) {
-            // 1. Удаляем символ GS (ASCII 29)
-            let cleanedCode = decodedText.replace(new RegExp(GS, 'g'), '');
-            
-            // 2. Проверяем, что код начинается с AI 01 (GTIN)
-            if (!cleanedCode.startsWith('01')) {
-                return null; // Некорректный код
-            }
-
-            // 3. Извлекаем GTIN (14 символов, включая AI 01)
-            // 01 + 14 цифр GTIN = 16 символов
-            const gtinPart = cleanedCode.substring(0, 16);
-            
-            // 4. Находим начало криптохвоста (AI 91 или 92)
-            // Криптохвост начинается после SN и перед AI 91 или 92.
-            
-            // Находим позицию AI 91 или AI 92
-            let cryptoStart = -1;
-            
-            // Ищем AI 91 (Ключ проверки)
-            let pos91 = cleanedCode.indexOf('91', 16);
-            if (pos91 !== -1) {
-                cryptoStart = pos91;
-            } else {
-                // Ищем AI 92 (Код проверки)
-                let pos92 = cleanedCode.indexOf('92', 16);
-                if (pos92 !== -1) {
-                    cryptoStart = pos92;
-                }
-            }
-
-            if (cryptoStart === -1) {
-                // Если не нашли AI 91 или 92, возможно, это неполный код или старый формат.
-                // В этом случае возвращаем код как есть (после удаления GS), но это рискованно.
-                return null; 
-            }
-
-            // 5. Извлекаем Серийный номер и Криптохвост
-            // Серийный номер начинается после AI 21 (16+2 = 18) и идет до AI 91/92.
-            // Внимание: В коде маркировки AI 21 не всегда присутствует в декодированной строке, если он был удален сканером.
-            
-            // Для ЭДО нам нужен формат: GTIN (14) + SN (13) + Криптохвост (44)
-            // В вашем примере УПД: 0104630328030517215iMu+KFqrSO!G
-            // Это чистая последовательность данных.
-            
-            // В маркировке всегда: 01[GTIN]21[SN]91[KEY]92[CODE]
-            
-            // Упрощенное извлечение (для большинства товаров РФ):
-            // 16 символов (01+GTIN) + 13 символов (SN) + 4 символа (91) + 44 символа (92)
-            
-            // Извлекаем только данные, удаляя AI 01, 21, 91, 92.
-            
-            // 1. Удаляем AI 01
-            let data = cleanedCode.substring(2); 
-            
-            // 2. Удаляем AI 21
-            if (data.startsWith('21')) {
-                data = data.substring(2);
-            }
-
-            // 3. Находим AI 91 или 92 и удаляем их
-            let finalCode = data;
-            
-            let p91 = data.indexOf('91');
-            let p92 = data.indexOf('92');
-            
-            if (p91 !== -1) {
-                finalCode = finalCode.replace('91', '');
-            }
-            if (p92 !== -1) {
-                finalCode = finalCode.replace('92', '');
-            }
-
-            // В итоге мы должны получить: GTIN (14) + SN (переменной длины) + Криптохвост
-            // Самый надежный способ: просто удалить все AI-идентификаторы (01, 21, 91, 92) и GS.
-            
-            let finalKiz = decodedText
-                .replace(new RegExp(GS, 'g'), '') // Удаляем GS
-                .replace('01', '') // Удаляем AI GTIN
-                .replace('21', '') // Удаляем AI SN
-                .replace('91', '') // Удаляем AI Key
-                .replace('92', ''); // Удаляем AI Code
-            
-            // ВНИМАНИЕ: Если AI 01, 21, 91, 92 встречаются в данных (SN или Криптохвост), это приведет к ошибке.
-            // Но для ЭДО требуется именно эта чистая строка.
-            
-            return finalKiz;
+            // Удаляем символ GS (ASCII 29) из всей строки. 
+            // Это оставляет все AI (01, 21, 91, 92) и данные склеенными, как в XML/ЭДО.
+            return decodedText.replace(new RegExp(GS, 'g'), '');
         }
 
 
@@ -304,11 +221,11 @@
                 return;
             }
 
-            // 3. ФОРМАТИРОВАНИЕ ДЛЯ ЭДО:
+            // 3. ФОРМАТИРОВАНИЕ ДЛЯ ЭДО: Удаляем только разделители GS
             const serializedCode = formatGs1CodeForEdo(decodedText);
 
-            if (!serializedCode) {
-                stopScanAfterSuccess(false, "Ошибка форматирования: Не удалось извлечь КИЗ. Проверьте структуру кода.");
+            if (!serializedCode || serializedCode.length < 25) {
+                stopScanAfterSuccess(false, "Ошибка форматирования: Код слишком короткий.");
                 return;
             }
             
