@@ -3,41 +3,152 @@
 <head>
     <title>Сканер кодов</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        /* Общие стили и фон */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Начинаем сверху */
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        /* Контейнер для центрирования и стиля */
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            margin-top: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+        
+        /* Стиль области сканера */
+        #reader {
+            width: 100%;
+            height: 300px; /* Фиксированная высота для лучшего вида */
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden; /* Важно для html5-qrcode */
+            background-color: #ecf0f1;
+        }
+
+        /* Стиль для отображения результатов */
+        #results {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 20px 0;
+            padding: 15px;
+            background: #e8f6f3;
+            border-radius: 8px;
+            border-left: 5px solid #1abc9c;
+            transition: all 0.3s ease;
+        }
+
+        /* Стиль кнопки */
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background: linear-gradient(45deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            background: linear-gradient(45deg, #2980b9 0%, #3498db 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
 <body>
-    <div id="reader" style="width: 100%; max-width: 500px; margin: 0 auto;"></div>
-    <div id="results" style="text-align: center; margin: 20px; font-size: 18px;"></div>
-    <button onclick="exportCSV()" style="display: block; margin: 0 auto; padding: 10px 20px;">Экспорт в CSV</button>
+    <div class="container">
+        <h1>📱 Сканер кодов</h1>
+        
+        <div id="reader"></div>
+        
+        <div id="results">Отсканировано: 0 кодов</div>
+        
+        <button onclick="exportCSV()">💾 Экспорт в CSV</button>
+    </div>
 
     <script>
         let codes = [];
         
         function onScanSuccess(decodedText) {
+            // Добавляем код и время в массив
             codes.push({
                 code: decodedText,
                 timestamp: new Date().toLocaleString()
             });
+            // Обновляем счетчик
             document.getElementById('results').innerHTML = 
                 'Отсканировано: ' + codes.length + ' кодов';
         }
 
         function exportCSV() {
+            if (codes.length === 0) {
+                alert('Нет отсканированных кодов для экспорта.');
+                return;
+            }
+
+            // Формируем CSV строку
             let csv = 'Код,Время сканирования\n';
             codes.forEach(row => {
+                // Оборачиваем в кавычки для корректной обработки запятых в кодах
                 csv += `"${row.code}","${row.timestamp}"\n`;
             });
             
-            const blob = new Blob([csv], { type: 'text/csv' });
+            // Создаем Blob и ссылку для скачивания
+            // Используем BOM (\uFEFF) для корректного отображения кириллицы в Excel
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'marking_codes.csv';
+            
+            // Имитируем клик для начала скачивания
             a.click();
+
+            // Очистка
+            window.URL.revokeObjectURL(url);
         }
 
         // Инициализация сканера
         const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 10, qrbox: 250 });
+            "reader", { 
+                fps: 10, 
+                qrbox: 250 
+            });
+        
+        // Рендеринг сканера с функцией обратного вызова
         html5QrcodeScanner.render(onScanSuccess);
     </script>
 </body>
