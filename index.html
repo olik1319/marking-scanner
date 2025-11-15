@@ -8,6 +8,7 @@
         :root {
             --primary-color: #007bff;
             --secondary-color: #28a745;
+            --danger-color: #dc3545;
             --background-light: #f8f9fa;
             --background-dark: #e9ecef;
             --text-color: #343a40;
@@ -76,10 +77,20 @@
             color: var(--text-color);
             margin: 20px 0;
             padding: 15px;
-            background: #e6f7ff; /* Light blue background */
+            background: #e6f7ff;
             border-radius: 8px;
             border-left: 5px solid var(--primary-color);
             transition: all 0.3s ease;
+        }
+        
+        /* Error/Info Message Display */
+        #info-message {
+            text-align: center;
+            color: var(--danger-color);
+            font-weight: bold;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            min-height: 20px;
         }
 
         /* Buttons Styling */
@@ -112,7 +123,7 @@
         }
 
         #scanButton.scanning {
-            background: linear-gradient(45deg, #ffc107, #e0a800); /* Yellow/Orange when active */
+            background: linear-gradient(45deg, #ffc107, #e0a800);
             cursor: default;
         }
         
@@ -124,12 +135,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>✨ Сканер кодов (По нажатию)</h1>
+        <h1>✨ Сканер кодов (DataMatrix GS1)</h1>
         
         <div id="reader">
             <div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>
         </div>
         
+        <div id="info-message"></div>
         <div id="results">Отсканировано: 0 кодов</div>
 
         <div class="button-group">
@@ -139,41 +151,84 @@
     </div>
 
     <script>
-        // Теперь codes хранит только строки с кодами
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
         const readerId = "reader";
 
+        // Специальные символы для GS1 DataMatrix
+        // FNC1 (ASCII 232) - обычно представляется как ^] или ]d2 в некоторых сканерах
+        // GS (ASCII 29) - обычно представляется как ^G
+        // В html5-qrcode эти символы могут быть представлены как:
+        const FNC1 = String.fromCharCode(29); // FNC1 часто декодируется как GS (ASCII 29) в начале строки
+        const GS = String.fromCharCode(29);   // GS (ASCII 29) - разделитель
+
+        // Регулярное выражение для проверки структуры GS1 DataMatrix (Упрощенная проверка)
+        // Проверяем, что код начинается с FNC1 (или его эквивалента) и содержит разделители GS
+        // Так как html5-qrcode часто декодирует FNC1 в начале как GS (ASCII 29),
+        // мы ищем начало с (01) или GS, а затем наличие GS в середине.
+        const gs1Pattern = new RegExp(`^${GS}\\d{2}\\d{14}\\d{2}.*${GS}.*`);
+        
+        // Функция для отображения сообщений
+        function displayMessage(text, isError = false) {
+            const msgElement = document.getElementById('info-message');
+            msgElement.textContent = text;
+            msgElement.style.color = isError ? 'var(--danger-color)' : 'var(--primary-color)';
+        }
+
         // --- Функция остановки сканирования после успешного считывания ---
-        function stopScanAfterSuccess() {
+        function stopScanAfterSuccess(success = true) {
             const button = document.getElementById('scanButton');
             const readerElement = document.getElementById(readerId);
 
             if (html5QrCode && isScanning) {
                 html5QrCode.stop().then(() => {
                     isScanning = false;
-                    button.textContent = '✅ Скан готов. Начать следующий?';
+                    button.textContent = success ? '✅ Скан готов. Начать следующий?' : '❌ Повторить сканирование';
                     button.classList.remove('scanning');
                     button.classList.add('start');
-                    button.disabled = false; // Разрешаем повторное нажатие
+                    button.disabled = false; 
                     
-                    // Возвращаем заглушку в область сканера
-                    readerElement.innerHTML = '<div class="placeholder">Код успешно считан. Нажмите "Начать" для следующего.</div>';
+                    if (success) {
+                        displayMessage("Код GS1 DataMatrix успешно считан.", false);
+                        readerElement.innerHTML = '<div class="placeholder">Код успешно считан. Нажмите "Начать" для следующего.</div>';
+                    } else {
+                        readerElement.innerHTML = '<div class="placeholder">Неверный формат кода. Попробуйте снова.</div>';
+                    }
                 }).catch(err => {
                     console.error("Ошибка при остановке сканирования:", err);
                 });
             }
         }
 
-        function onScanSuccess(decodedText) {
-            // 1. Обрабатываем код (сохраняем только код, без даты)
-            codes.push(decodedText);
-            document.getElementById('results').innerHTML = 
-                'Отсканировано: ' + codes.length + ' кодов';
+        function onScanSuccess(decodedText, result) {
+            // 1. Проверяем, что это DataMatrix
+            if (result.result.format.formatName !== 'DATA_MATRIX') {
+                displayMessage(`Ошибка: Считан код формата ${result.result.format.formatName}. Требуется DataMatrix.`, true);
+                stopScanAfterSuccess(false);
+                return;
+            }
+
+            // 2. Проверяем, что это GS1 DataMatrix (проверка структуры)
+            // Для корректной работы с DataMatrix, содержащим FNC1/GS, 
+            // html5-qrcode должен быть настроен на вывод "сырых" данных.
+            // Мы полагаемся на то, что DataMatrix маркировки начинается с GS (ASCII 29).
             
-            // 2. Сразу останавливаем сканирование
-            stopScanAfterSuccess(); 
+            // Проверка: код должен начинаться с символа-разделителя (ASCII 29)
+            if (decodedText.startsWith(GS)) {
+                
+                // Код соответствует базовому требованию GS1 (начинается с GS)
+                codes.push(decodedText);
+                document.getElementById('results').innerHTML = 
+                    'Отсканировано: ' + codes.length + ' кодов';
+                
+                // Успех
+                stopScanAfterSuccess(true); 
+
+            } else {
+                displayMessage("Ошибка: Код DataMatrix не соответствует формату GS1 (нет символа FNC1/GS в начале).", true);
+                stopScanAfterSuccess(false);
+            }
         }
 
         function exportCSV() {
@@ -182,14 +237,12 @@
                 return;
             }
 
-            // --- Изменено: Убрана шапка и дата ---
             let csv = ''; 
             codes.forEach(codeString => {
                 // Добавляем только код, заключенный в кавычки
                 csv += `"${codeString}"\n`;
             });
             
-            // Создаем Blob с BOM (\uFEFF) для корректного отображения кириллицы
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -206,7 +259,7 @@
                 return;
             }
             
-            // Блокируем кнопку и меняем UI
+            displayMessage("Наведите камеру на код DataMatrix...", false);
             button.disabled = true;
             button.textContent = '... Сканирование активно ...';
             button.classList.remove('start');
@@ -221,12 +274,22 @@
                 facingMode: "environment" 
             };
 
+            // --- Ключевое изменение: Указываем DataMatrix как единственный поддерживаемый формат ---
+            const config = { 
+                fps: 10, 
+                qrbox: 250,
+                // Ограничиваем только DataMatrix
+                supportedScanTypes: [
+                    Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX
+                ]
+            };
+
             html5QrCode.start(
                 cameraConstraints, 
-                { fps: 10, qrbox: 250 }, 
+                config, 
                 onScanSuccess, 
                 (errorMessage) => { 
-                    // Игнорируем ошибки
+                    // Игнорируем ошибки, пока камера ищет код
                 }
             ).then(() => {
                 isScanning = true;
@@ -235,11 +298,11 @@
                 alert("Ошибка запуска камеры. Проверьте, дали ли вы разрешение браузеру.");
                 console.error("Camera start failed:", err);
                 
-                // Сбрасываем UI в случае ошибки
                 button.disabled = false;
                 button.textContent = '▶️ Начать сканирование';
                 button.classList.remove('scanning');
                 button.classList.add('start');
+                displayMessage("Не удалось запустить камеру.", true);
             });
         }
     </script>
