@@ -615,68 +615,89 @@
 
         // Общая функция для отправки через приложения
         function shareViaApp(app) {
-            // Сначала скачиваем файл
+            // Создаем CSV файл
             const blob = createCSVBlob();
-            const url = createFileURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `marking_codes_${codes.length}_items.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            const file = new File([blob], `marking_codes_${codes.length}_items.csv`, { type: 'text/csv' });
             
             hideShareModal();
             
-            // Затем открываем приложение
-            setTimeout(() => {
-                let appName, appUrl, instructions;
-                
-                switch(app) {
-                    case 'telegram':
-                        appName = 'Telegram';
-                        appUrl = 'tg://';
-                        instructions = '1. Откройте Telegram\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите скачанный файл';
-                        break;
-                    case 'whatsapp':
-                        appName = 'WhatsApp';
-                        appUrl = 'whatsapp://send';
-                        instructions = '1. Откройте WhatsApp\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите "Документ"\n5. Найдите скачанный файл';
-                        break;
-                    case 'email':
-                        appName = 'почтовый клиент';
-                        const subject = `Отсканированные коды (${codes.length} шт)`;
-                        const body = `Во вложении CSV файл с ${codes.length} отсканированными кодами.`;
-                        appUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                        instructions = '1. Файл будет прикреплен к письму\n2. Укажите получателя\n3. Отправьте письмо';
-                        break;
-                }
-                
-                if (confirm(`Файл с ${codes.length} кодами скачан!\n\nОткрыть ${appName} для отправки файла?`)) {
-                    if (app === 'email') {
-                        window.location.href = appUrl;
-                    } else {
+            // Пытаемся использовать Web Share API если доступен
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    title: `Отсканированные коды (${codes.length} шт)`,
+                    text: `CSV файл с ${codes.length} отсканированными кодами`,
+                    files: [file]
+                }).then(() => {
+                    showToast('Файл отправлен!');
+                }).catch(err => {
+                    console.log('Web Share cancelled or failed:', err);
+                    fallbackShare(app, blob);
+                });
+            } else {
+                // Fallback для браузеров без поддержки Web Share API
+                fallbackShare(app, blob);
+            }
+        }
+
+        // Fallback метод для отправки
+        function fallbackShare(app, blob) {
+            const url = URL.createObjectURL(blob);
+            
+            let appUrl, appName, instructions;
+            
+            switch(app) {
+                case 'telegram':
+                    appName = 'Telegram';
+                    appUrl = 'tg://';
+                    instructions = '1. Откройте Telegram\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите "Файл" или "Документ"\n5. Найдите скачанный файл в загрузках';
+                    // Для Telegram создаем ссылку для скачивания
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `marking_codes_${codes.length}_items.csv`;
+                    a.click();
+                    showToast('Файл скачан! Откройте Telegram для отправки.');
+                    break;
+                    
+                case 'whatsapp':
+                    appName = 'WhatsApp';
+                    appUrl = 'whatsapp://send';
+                    instructions = '1. Откройте WhatsApp\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите "Документ"\n5. Найдите скачанный файл в загрузках';
+                    // Для WhatsApp создаем ссылку для скачивания
+                    const a2 = document.createElement('a');
+                    a2.href = url;
+                    a2.download = `marking_codes_${codes.length}_items.csv`;
+                    a2.click();
+                    showToast('Файл скачан! Откройте WhatsApp для отправки.');
+                    break;
+                    
+                case 'email':
+                    appName = 'почтовый клиент';
+                    const subject = `Отсканированные коды (${codes.length} шт)`;
+                    const body = `Во вложении CSV файл с ${codes.length} отсканированными кодами.`;
+                    // Для email создаем mailto ссылку с прикреплением файла
+                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.location.href = mailtoLink;
+                    showToast('Открывается почтовый клиент...');
+                    break;
+            }
+            
+            // Открываем приложение
+            if (app !== 'email') {
+                setTimeout(() => {
+                    if (confirm(`Открыть ${appName}?`)) {
                         window.open(appUrl, '_blank');
                     }
-                    
-                    // Дополнительная инструкция
-                    setTimeout(() => {
-                        alert(`Если ${appName} не открылся:\n\n${instructions}`);
-                    }, 1000);
-                }
-            }, 500);
+                }, 1000);
+            }
             
-            setTimeout(() => window.URL.revokeObjectURL(url), 3000);
+            // Очищаем URL через некоторое время
+            setTimeout(() => URL.revokeObjectURL(url), 30000);
         }
 
         // Простое скачивание для отправки
         function downloadForSharing() {
             exportCSV();
             hideShareModal();
-            
-            // Показываем подсказку после скачивания
-            setTimeout(() => {
-                showToast('Файл скачан! Теперь можете отправить его через любое приложение.');
-            }, 500);
         }
 
         // Очистка списка кодов
@@ -768,19 +789,14 @@
             }
 
             const blob = createCSVBlob();
-            const url = createFileURL(blob);
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `marking_codes_${codes.length}_items.csv`;
             a.click();
-            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
             
             showToast(`CSV файл с ${codes.length} кодами скачан`);
-        }
-
-        // Функция создания временной ссылки для файла
-        function createFileURL(blob) {
-            return window.URL.createObjectURL(blob);
         }
 
         function toggleScan() {
