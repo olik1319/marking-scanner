@@ -10,6 +10,7 @@
             --secondary-color: #28a745;
             --danger-color: #dc3545;
             --warning-color: #ffc107;
+            --info-color: #17a2b8;
             --background-light: #f8f9fa;
             --background-dark: #e9ecef;
             --text-color: #343a40;
@@ -148,6 +149,102 @@
             background: linear-gradient(45deg, var(--secondary-color), #1e7e34);
         }
         
+        /* Share Button Specific Styles */
+        #shareButton {
+            background: linear-gradient(45deg, var(--info-color), #138496);
+        }
+        
+        /* Share Modal Styles */
+        .share-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .share-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .share-modal h3 {
+            margin-top: 0;
+            color: var(--text-color);
+            font-size: 1.5rem;
+        }
+        
+        .share-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+        
+        .share-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            border: 2px solid var(--background-dark);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 80px;
+        }
+        
+        .share-option:hover {
+            border-color: var(--primary-color);
+            background: var(--background-light);
+            transform: translateY(-3px);
+        }
+        
+        .share-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        
+        .share-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .modal-button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-cancel {
+            background: var(--background-dark);
+            color: var(--text-color);
+        }
+        
+        .modal-cancel:hover {
+            background: #d1d5db;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .container {
@@ -187,6 +284,15 @@
             #results, #info-message {
                 font-size: 1rem;
             }
+            
+            .share-options {
+                gap: 10px;
+            }
+            
+            .share-option {
+                min-width: 70px;
+                padding: 12px;
+            }
         }
     </style>
 </head>
@@ -204,6 +310,41 @@
         <div class="button-group">
             <button id="scanButton" class="start" onclick="startScan()">▶️ Начать сканирование</button>
             <button id="exportButton" onclick="exportCSV()">💾 Экспорт в CSV</button>
+            <button id="shareButton" onclick="showShareModal()">📤 Поделиться CSV</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для выбора способа отправки -->
+    <div id="shareModal" class="share-modal">
+        <div class="share-modal-content">
+            <h3>📤 Отправить CSV файл</h3>
+            <p>Выберите способ отправки отсканированных кодов:</p>
+            
+            <div class="share-options">
+                <div class="share-option" onclick="shareViaTelegram()">
+                    <div class="share-icon">📱</div>
+                    <div class="share-name">Telegram</div>
+                </div>
+                
+                <div class="share-option" onclick="shareViaWhatsApp()">
+                    <div class="share-icon">💬</div>
+                    <div class="share-name">WhatsApp</div>
+                </div>
+                
+                <div class="share-option" onclick="shareViaEmail()">
+                    <div class="share-icon">📧</div>
+                    <div class="share-name">Email</div>
+                </div>
+                
+                <div class="share-option" onclick="downloadAndShare()">
+                    <div class="share-icon">📥</div>
+                    <div class="share-name">Скачать</div>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-button modal-cancel" onclick="hideShareModal()">Отмена</button>
+            </div>
         </div>
     </div>
 
@@ -215,6 +356,146 @@
         
         // Символ GS (ASCII 29) - разделитель групп данных / FNC1
         const GS = String.fromCharCode(29); 
+
+        // Функции для модального окна
+        function showShareModal() {
+            if (codes.length === 0) {
+                alert('Нет отсканированных кодов для отправки.');
+                return;
+            }
+            document.getElementById('shareModal').style.display = 'flex';
+        }
+
+        function hideShareModal() {
+            document.getElementById('shareModal').style.display = 'none';
+        }
+
+        // Функция создания CSV файла
+        function createCSVBlob() {
+            let csv = ''; 
+            codes.forEach(codeString => {
+                csv += `${codeString}\n`; 
+            });
+            return new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        }
+
+        // Функция создания временной ссылки для файла
+        function createFileURL(blob) {
+            return window.URL.createObjectURL(blob);
+        }
+
+        // Отправка через Telegram
+        function shareViaTelegram() {
+            const blob = createCSVBlob();
+            const file = new File([blob], "marking_codes.csv", { type: "text/csv" });
+            
+            if (navigator.share) {
+                // Используем Web Share API если доступен
+                navigator.share({
+                    title: 'Отсканированные коды',
+                    text: `Отсканировано ${codes.length} кодов`,
+                    files: [file]
+                }).then(() => {
+                    hideShareModal();
+                }).catch(err => {
+                    console.log('Web Share cancelled or failed:', err);
+                    fallbackTelegramShare();
+                });
+            } else {
+                fallbackTelegramShare();
+            }
+        }
+
+        function fallbackTelegramShare() {
+            // Альтернативный способ для Telegram
+            const blob = createCSVBlob();
+            const url = createFileURL(blob);
+            
+            // Создаем временную ссылку для скачивания
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'marking_codes.csv';
+            a.click();
+            
+            // Показываем сообщение с инструкцией
+            setTimeout(() => {
+                alert('Файл скачан. Теперь вы можете отправить его в Telegram:\n1. Откройте Telegram\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите скачанный файл');
+            }, 500);
+            
+            hideShareModal();
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        }
+
+        // Отправка через WhatsApp
+        function shareViaWhatsApp() {
+            const blob = createCSVBlob();
+            const file = new File([blob], "marking_codes.csv", { type: "text/csv" });
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Отсканированные коды',
+                    text: `Отсканировано ${codes.length} кодов`,
+                    files: [file]
+                }).then(() => {
+                    hideShareModal();
+                }).catch(err => {
+                    console.log('Web Share cancelled or failed:', err);
+                    fallbackWhatsAppShare();
+                });
+            } else {
+                fallbackWhatsAppShare();
+            }
+        }
+
+        function fallbackWhatsAppShare() {
+            // Для WhatsApp используем скачивание файла
+            const blob = createCSVBlob();
+            const url = createFileURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'marking_codes.csv';
+            a.click();
+            
+            setTimeout(() => {
+                alert('Файл скачан. Теперь вы можете отправить его в WhatsApp:\n1. Откройте WhatsApp\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите "Документ"\n5. Найдите скачанный файл');
+            }, 500);
+            
+            hideShareModal();
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        }
+
+        // Отправка через Email
+        function shareViaEmail() {
+            const csvContent = codes.join('\n');
+            const subject = `Отсканированные коды (${codes.length} шт)`;
+            const body = `Во вложении CSV файл с ${codes.length} отсканированными кодами.\n\nСписок кодов:\n${csvContent}`;
+            
+            const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            // Создаем и прикрепляем файл
+            const blob = createCSVBlob();
+            const url = createFileURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'marking_codes.csv';
+            a.click();
+            
+            setTimeout(() => {
+                // Открываем почтовый клиент после скачивания файла
+                window.location.href = mailtoLink;
+            }, 1000);
+            
+            hideShareModal();
+            setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+        }
+
+        // Простое скачивание
+        function downloadAndShare() {
+            exportCSV();
+            hideShareModal();
+        }
 
         // Функция для отображения сообщений
         function displayMessage(text, className = 'status-ok') {
@@ -253,51 +534,37 @@
 
         // --- ФУНКЦИЯ ФОРМАТИРОВАНИЯ: ОБРЕЗАНИЕ ПОСЛЕ ПЕРВОГО GS ---
         function formatGs1CodeForEdo(decodedText) {
-            // 1. Находим позицию первого символа GS (ASCII 29)
-            // ВАЖНО: Первый символ GS является FNC1 в начале строки. 
-            // Нам нужно найти ВТОРОЙ символ GS, который стоит после серийного номера.
-            
-            const firstGSIndex = decodedText.indexOf(GS); // Это FNC1
+            const firstGSIndex = decodedText.indexOf(GS);
             
             if (firstGSIndex === -1) {
-                // Если GS вообще нет (не GS1 код), возвращаем null
                 return null;
             }
 
-            // Ищем второй символ GS, начиная с позиции после первого
             const secondGSIndex = decodedText.indexOf(GS, firstGSIndex + 1);
-
             let result = decodedText;
 
             if (secondGSIndex !== -1) {
-                // Обрезаем строку, оставляя все до второго GS
                 result = decodedText.substring(0, secondGSIndex);
             }
             
-            // 2. Удаляем первый символ GS (FNC1)
             if (result.startsWith(GS)) {
                 result = result.substring(1);
             }
             
-            // Теперь результат должен быть: 01(GTIN)21(Серийный номер)
             return result;
         }
 
-
         function onScanSuccess(decodedText, result) {
-            // 1. Проверяем формат DataMatrix
             if (result.result.format.formatName !== 'DATA_MATRIX') {
                 stopScanAfterSuccess(false, `Ошибка: Считан код формата ${result.result.format.formatName}. Требуется DataMatrix.`);
                 return;
             }
 
-            // 2. Проверяем GS1 (начинается с GS)
             if (!decodedText.startsWith(GS)) {
                 stopScanAfterSuccess(false, "Ошибка: Код DataMatrix не соответствует формату GS1 (нет символа GS в начале).");
                 return;
             }
 
-            // 3. ФОРМАТИРОВАНИЕ ДЛЯ ЭДО: Обрезаем после серийного номера
             const serializedCode = formatGs1CodeForEdo(decodedText);
 
             if (!serializedCode || serializedCode.length < 25) {
@@ -305,12 +572,10 @@
                 return;
             }
             
-            // 4. Сохраняем отформатированный код
             codes.push(serializedCode);
             document.getElementById('results').innerHTML = 
                 'Отсканировано: ' + codes.length + ' кодов';
             
-            // Успешно считан и отформатирован
             stopScanAfterSuccess(true, `Код отформатирован для ЭДО: ${serializedCode}`);
         }
 
@@ -320,18 +585,13 @@
                 return;
             }
 
-            let csv = ''; 
-            codes.forEach(codeString => {
-                csv += `${codeString}\n`; 
-            });
-            
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-            const url = window.URL.createObjectURL(blob);
+            const blob = createCSVBlob();
+            const url = createFileURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'marking_codes.csv';
             a.click();
-            window.URL.revokeObjectURL(url);
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         }
 
         function startScan() {
@@ -355,7 +615,6 @@
                 facingMode: "environment" 
             };
 
-            // Увеличенная область сканирования
             const config = { 
                 fps: 10, 
                 qrbox: { 
@@ -388,6 +647,13 @@
                 displayMessage("Не удалось запустить камеру.", 'status-error');
             });
         }
+
+        // Закрытие модального окна при клике вне его
+        document.getElementById('shareModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideShareModal();
+            }
+        });
     </script>
 </body>
 </html>
