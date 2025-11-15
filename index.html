@@ -199,7 +199,7 @@
             padding: 30px;
             border-radius: 15px;
             text-align: center;
-            max-width: 400px;
+            max-width: 450px;
             width: 90%;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
@@ -208,48 +208,64 @@
             margin-top: 0;
             color: var(--text-color);
             font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .share-description {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 1rem;
         }
         
         .share-options {
-            display: flex;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin: 25px 0;
-            flex-wrap: wrap;
         }
         
         .share-option {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 15px;
+            padding: 20px 15px;
             border: 2px solid var(--background-dark);
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
-            min-width: 80px;
+            background: white;
         }
         
         .share-option:hover {
             border-color: var(--primary-color);
             background: var(--background-light);
             transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
         
         .share-icon {
-            font-size: 2rem;
-            margin-bottom: 8px;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
         }
         
         .share-name {
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .share-hint {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
         }
         
         .modal-buttons {
             display: flex;
             gap: 10px;
             justify-content: center;
+            margin-top: 20px;
         }
         
         .modal-button {
@@ -382,6 +398,11 @@
                 min-height: 75px;
             }
 
+            .share-options {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
             .toast {
                 top: 10px;
                 right: 10px;
@@ -423,13 +444,8 @@
                 font-size: 1rem;
             }
             
-            .share-options {
-                gap: 10px;
-            }
-            
             .share-option {
-                min-width: 70px;
-                padding: 12px;
+                padding: 15px 10px;
             }
 
             .toast {
@@ -482,14 +498,32 @@
     <!-- Модальное окно для выбора способа отправки -->
     <div id="shareModal" class="share-modal">
         <div class="share-modal-content">
-            <h3>📤 Поделиться кодами</h3>
-            <p>Отсканировано кодов: <strong id="codes-count">0</strong></p>
-            <p>Файл CSV будет скачан на ваше устройство, после чего вы сможете отправить его через любое приложение.</p>
+            <h3>📤 Куда отправить файл?</h3>
+            <p class="share-description">Отсканировано кодов: <strong id="codes-count">0</strong></p>
             
             <div class="share-options">
+                <div class="share-option" onclick="shareViaApp('telegram')">
+                    <div class="share-icon">📱</div>
+                    <div class="share-name">Telegram</div>
+                    <div class="share-hint">Откроет Telegram</div>
+                </div>
+                
+                <div class="share-option" onclick="shareViaApp('whatsapp')">
+                    <div class="share-icon">💬</div>
+                    <div class="share-name">WhatsApp</div>
+                    <div class="share-hint">Откроет WhatsApp</div>
+                </div>
+                
+                <div class="share-option" onclick="shareViaApp('email')">
+                    <div class="share-icon">📧</div>
+                    <div class="share-name">Email</div>
+                    <div class="share-hint">Откроет почту</div>
+                </div>
+                
                 <div class="share-option" onclick="downloadForSharing()">
                     <div class="share-icon">📥</div>
-                    <div class="share-name">Скачать файл</div>
+                    <div class="share-name">Скачать</div>
+                    <div class="share-hint">Только скачать файл</div>
                 </div>
             </div>
             
@@ -577,6 +611,61 @@
                 csv += `${codeString}\n`; 
             });
             return new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        }
+
+        // Общая функция для отправки через приложения
+        function shareViaApp(app) {
+            // Сначала скачиваем файл
+            const blob = createCSVBlob();
+            const url = createFileURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `marking_codes_${codes.length}_items.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            hideShareModal();
+            
+            // Затем открываем приложение
+            setTimeout(() => {
+                let appName, appUrl, instructions;
+                
+                switch(app) {
+                    case 'telegram':
+                        appName = 'Telegram';
+                        appUrl = 'tg://';
+                        instructions = '1. Откройте Telegram\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите скачанный файл';
+                        break;
+                    case 'whatsapp':
+                        appName = 'WhatsApp';
+                        appUrl = 'whatsapp://send';
+                        instructions = '1. Откройте WhatsApp\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите "Документ"\n5. Найдите скачанный файл';
+                        break;
+                    case 'email':
+                        appName = 'почтовый клиент';
+                        const subject = `Отсканированные коды (${codes.length} шт)`;
+                        const body = `Во вложении CSV файл с ${codes.length} отсканированными кодами.`;
+                        appUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                        instructions = '1. Файл будет прикреплен к письму\n2. Укажите получателя\n3. Отправьте письмо';
+                        break;
+                }
+                
+                if (confirm(`Файл с ${codes.length} кодами скачан!\n\nОткрыть ${appName} для отправки файла?`)) {
+                    if (app === 'email') {
+                        window.location.href = appUrl;
+                    } else {
+                        window.open(appUrl, '_blank');
+                    }
+                    
+                    // Дополнительная инструкция
+                    setTimeout(() => {
+                        alert(`Если ${appName} не открылся:\n\n${instructions}`);
+                    }, 1000);
+                }
+            }, 500);
+            
+            setTimeout(() => window.URL.revokeObjectURL(url), 3000);
         }
 
         // Простое скачивание для отправки
