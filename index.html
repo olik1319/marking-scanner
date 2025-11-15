@@ -63,12 +63,30 @@
             align-items: center;
             color: #6c757d;
             font-size: 1.1rem;
+            position: relative;
         }
 
         /* Placeholder text before scanning starts */
         .placeholder {
             padding: 50px;
             text-align: center;
+        }
+
+        /* Scanning overlay */
+        .scanning-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            z-index: 10;
         }
 
         /* Results Display */
@@ -129,7 +147,7 @@
         }
 
         /* Остальные кнопки тоже увеличены, но меньше чем основная */
-        #exportButton, #shareButton, #clearButton {
+        #exportButton, #shareButton, #clearButton, #pauseButton {
             padding: 22px 20px;
             border: none;
             border-radius: 12px;
@@ -163,6 +181,10 @@
             background: linear-gradient(45deg, var(--warning-color), #e0a800);
             cursor: default;
         }
+
+        #scanButton.paused {
+            background: linear-gradient(45deg, #6c757d, #495057);
+        }
         
         /* Export Button Specific Styles */
         #exportButton {
@@ -177,6 +199,15 @@
         /* Clear Button Specific Styles */
         #clearButton {
             background: linear-gradient(45deg, var(--danger-color), #c82333);
+        }
+
+        /* Pause Button Specific Styles */
+        #pauseButton {
+            background: linear-gradient(45deg, #6c757d, #495057);
+        }
+
+        #pauseButton.paused {
+            background: linear-gradient(45deg, var(--secondary-color), #1e7e34);
         }
         
         /* Share Modal Styles */
@@ -342,7 +373,7 @@
                 min-height: 90px;
             }
             
-            #exportButton, #shareButton, #clearButton {
+            #exportButton, #shareButton, #clearButton, #pauseButton {
                 padding: 20px 18px;
                 font-size: 1.3rem;
                 min-height: 75px;
@@ -366,7 +397,7 @@
                 border-radius: 12px;
             }
             
-            #exportButton, #shareButton, #clearButton {
+            #exportButton, #shareButton, #clearButton, #pauseButton {
                 padding: 18px 15px;
                 font-size: 1.2rem;
                 min-height: 70px;
@@ -395,7 +426,7 @@
                 min-height: 80px;
             }
             
-            #exportButton, #shareButton, #clearButton {
+            #exportButton, #shareButton, #clearButton, #pauseButton {
                 padding: 16px 12px;
                 font-size: 1.1rem;
                 min-height: 65px;
@@ -415,9 +446,10 @@
         <div id="results">Отсканировано: 0 кодов</div>
 
         <div class="button-group">
-            <button id="scanButton" class="start" onclick="startScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
-            <button id="exportButton" onclick="exportCSV()">💾 Экспорт в CSV</button>
-            <button id="shareButton" onclick="showShareModal()">📤 Поделиться CSV</button>
+            <button id="scanButton" class="start" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
+            <button id="pauseButton" onclick="togglePause()">⏸️ Пауза</button>
+            <button id="exportButton" onclick="exportCSV()">💾 Скачать CSV</button>
+            <button id="shareButton" onclick="showShareModal()">📤 Поделиться</button>
             <button id="clearButton" onclick="showClearConfirmation()">🗑️ Очистить список</button>
         </div>
     </div>
@@ -425,24 +457,14 @@
     <!-- Модальное окно для выбора способа отправки -->
     <div id="shareModal" class="share-modal">
         <div class="share-modal-content">
-            <h3>📤 Отправить CSV файл</h3>
+            <h3>📤 Поделиться кодами</h3>
             <p>Отсканировано кодов: <strong id="codes-count">0</strong></p>
-            <p>Выберите способ отправки:</p>
+            <p>Файл CSV будет скачан на ваше устройство, после чего вы сможете отправить его через любое приложение.</p>
             
             <div class="share-options">
-                <div class="share-option" onclick="shareViaTelegram()">
-                    <div class="share-icon">📱</div>
-                    <div class="share-name">Telegram</div>
-                </div>
-                
-                <div class="share-option" onclick="shareViaWhatsApp()">
-                    <div class="share-icon">💬</div>
-                    <div class="share-name">WhatsApp</div>
-                </div>
-                
-                <div class="share-option" onclick="shareViaEmail()">
-                    <div class="share-icon">📧</div>
-                    <div class="share-name">Email</div>
+                <div class="share-option" onclick="downloadForSharing()">
+                    <div class="share-icon">📥</div>
+                    <div class="share-name">Скачать файл</div>
                 </div>
             </div>
             
@@ -469,6 +491,7 @@
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
+        let isPaused = false;
         const readerId = "reader";
         
         // Символ GS (ASCII 29) - разделитель групп данных / FNC1
@@ -510,111 +533,15 @@
             return new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         }
 
-        // Функция создания временной ссылки для файла
-        function createFileURL(blob) {
-            return window.URL.createObjectURL(blob);
-        }
-
-        // Прямая отправка в Telegram
-        function shareViaTelegram() {
-            if (codes.length === 0) {
-                alert('Нет кодов для отправки.');
-                return;
-            }
-
-            const blob = createCSVBlob();
-            const url = createFileURL(blob);
-            
-            // Создаем ссылку для скачивания
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `marking_codes_${codes.length}_items.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            // Сразу закрываем модальное окно
+        // Простое скачивание для отправки
+        function downloadForSharing() {
+            exportCSV();
             hideShareModal();
             
-            // Показываем инструкцию
+            // Показываем подсказку после скачивания
             setTimeout(() => {
-                if (confirm(`Файл с ${codes.length} кодами скачан!\n\nОткрыть Telegram для отправки файла?`)) {
-                    // Пытаемся открыть Telegram
-                    window.open('tg://', '_blank');
-                    
-                    // Дополнительная инструкция
-                    setTimeout(() => {
-                        alert('Если Telegram не открылся:\n1. Откройте Telegram вручную\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите скачанный файл');
-                    }, 1000);
-                }
+                alert('Файл скачан! Теперь вы можете:\n\n1. Найти его в папке "Загрузки"\n2. Открыть любое приложение (Telegram, WhatsApp и др.)\n3. Выбрать "Прикрепить файл"\n4. Найти скачанный CSV файл');
             }, 500);
-            
-            setTimeout(() => window.URL.revokeObjectURL(url), 3000);
-        }
-
-        // Прямая отправка в WhatsApp
-        function shareViaWhatsApp() {
-            if (codes.length === 0) {
-                alert('Нет кодов для отправки.');
-                return;
-            }
-
-            const blob = createCSVBlob();
-            const url = createFileURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `marking_codes_${codes.length}_items.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            hideShareModal();
-            
-            setTimeout(() => {
-                if (confirm(`Файл с ${codes.length} кодами скачан!\n\nОткрыть WhatsApp для отправки файла?`)) {
-                    window.open('whatsapp://send', '_blank');
-                    
-                    setTimeout(() => {
-                        alert('Если WhatsApp не открылся:\n1. Откройте WhatsApp вручную\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите "Документ"\n5. Найдите скачанный файл');
-                    }, 1000);
-                }
-            }, 500);
-            
-            setTimeout(() => window.URL.revokeObjectURL(url), 3000);
-        }
-
-        // Отправка через Email
-        function shareViaEmail() {
-            if (codes.length === 0) {
-                alert('Нет кодов для отправки.');
-                return;
-            }
-
-            const csvContent = codes.join('\n');
-            const subject = `Отсканированные коды (${codes.length} шт)`;
-            const body = `Во вложении CSV файл с ${codes.length} отсканированными кодами.\n\nСписок кодов:\n${csvContent}`;
-            
-            const blob = createCSVBlob();
-            const url = createFileURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `marking_codes_${codes.length}_items.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            hideShareModal();
-            
-            setTimeout(() => {
-                if (confirm(`Файл с ${codes.length} кодами скачан!\n\nОткрыть почтовый клиент для отправки?`)) {
-                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    window.location.href = mailtoLink;
-                }
-            }, 500);
-            
-            setTimeout(() => window.URL.revokeObjectURL(url), 5000);
         }
 
         // Очистка списка кодов
@@ -638,31 +565,46 @@
             msgElement.className = className;
         }
 
-        // --- Функция остановки сканирования ---
-        function stopScanAfterSuccess(success = true, message = '') {
-            const button = document.getElementById('scanButton');
+        // Переключение паузы
+        function togglePause() {
+            const pauseButton = document.getElementById('pauseButton');
+            const scanButton = document.getElementById('scanButton');
             const readerElement = document.getElementById(readerId);
-
-            if (html5QrCode && isScanning) {
-                html5QrCode.stop().then(() => {
-                    isScanning = false;
-                    button.disabled = false;
-                    
-                    if (success) {
-                        button.textContent = '✅ Скан готов. Начать следующий?';
-                        readerElement.innerHTML = '<div class="placeholder">Код успешно считан. Нажмите "Начать" для следующего.</div>';
-                    } else {
-                        button.textContent = '❌ Повторить сканирование';
-                        readerElement.innerHTML = '<div class="placeholder">Неверный формат или ошибка. Попробуйте снова.</div>';
-                    }
-                    
-                    button.classList.remove('scanning');
-                    button.classList.add('start');
-                    displayMessage(message, success ? 'status-ok' : 'status-error');
-
-                }).catch(err => {
-                    console.error("Ошибка при остановке сканирования:", err);
-                });
+            
+            if (!isScanning) {
+                displayMessage('Сканирование не активно', 'status-error');
+                return;
+            }
+            
+            isPaused = !isPaused;
+            
+            if (isPaused) {
+                // Пауза
+                pauseButton.textContent = '▶️ Продолжить';
+                pauseButton.classList.add('paused');
+                scanButton.textContent = '⏸️ Сканирование на паузе';
+                scanButton.classList.remove('scanning');
+                scanButton.classList.add('paused');
+                
+                // Показываем оверлей паузы
+                readerElement.innerHTML += '<div class="scanning-overlay">⏸️ Сканирование на паузе</div>';
+                
+                displayMessage('Сканирование приостановлено', 'status-checking');
+            } else {
+                // Продолжение
+                pauseButton.textContent = '⏸️ Пауза';
+                pauseButton.classList.remove('paused');
+                scanButton.textContent = '... СКАНИРОВАНИЕ АКТИВНО ...';
+                scanButton.classList.remove('paused');
+                scanButton.classList.add('scanning');
+                
+                // Убираем оверлей паузы
+                const overlay = readerElement.querySelector('.scanning-overlay');
+                if (overlay) {
+                    overlay.remove();
+                }
+                
+                displayMessage('Сканирование продолжено', 'status-checking');
             }
         }
 
@@ -689,33 +631,49 @@
         }
 
         function onScanSuccess(decodedText, result) {
+            // Проверяем не на паузе ли сканирование
+            if (isPaused) {
+                return;
+            }
+            
             if (result.result.format.formatName !== 'DATA_MATRIX') {
-                stopScanAfterSuccess(false, `Ошибка: Считан код формата ${result.result.format.formatName}. Требуется DataMatrix.`);
+                displayMessage(`Ошибка: Считан код формата ${result.result.format.formatName}. Требуется DataMatrix.`, 'status-error');
                 return;
             }
 
             if (!decodedText.startsWith(GS)) {
-                stopScanAfterSuccess(false, "Ошибка: Код DataMatrix не соответствует формату GS1 (нет символа GS в начале).");
+                displayMessage("Ошибка: Код DataMatrix не соответствует формату GS1 (нет символа GS в начале).", 'status-error');
                 return;
             }
 
             const serializedCode = formatGs1CodeForEdo(decodedText);
 
             if (!serializedCode || serializedCode.length < 25) {
-                stopScanAfterSuccess(false, "Ошибка форматирования: Не удалось извлечь КИЗ. Проверьте структуру кода.");
+                displayMessage("Ошибка форматирования: Не удалось извлечь КИЗ. Проверьте структуру кода.", 'status-error');
                 return;
             }
             
             // Проверяем дубликаты
             if (codes.includes(serializedCode)) {
-                stopScanAfterSuccess(false, "Этот код уже был отсканирован ранее.");
+                displayMessage("Этот код уже был отсканирован ранее.", 'status-error');
                 return;
             }
             
             codes.push(serializedCode);
             updateResults();
             
-            stopScanAfterSuccess(true, `Код отформатирован для ЭДО: ${serializedCode}`);
+            displayMessage(`✅ Код отсканирован: ${serializedCode}`, 'status-ok');
+            
+            // Короткий звуковой сигнал (если нужно)
+            // beep();
+        }
+
+        function onScanFailure(error) {
+            // Игнорируем ошибки, пока сканирование активно и не на паузе
+            if (isScanning && !isPaused) {
+                // Можно добавить логирование ошибок, но не показывать пользователю
+                // console.log('Scan error:', error);
+            }
         }
 
         function exportCSV() {
@@ -733,18 +691,37 @@
             setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         }
 
+        // Функция создания временной ссылки для файла
+        function createFileURL(blob) {
+            return window.URL.createObjectURL(blob);
+        }
+
+        function toggleScan() {
+            if (isScanning) {
+                stopScan();
+            } else {
+                startScan();
+            }
+        }
+
         function startScan() {
             const button = document.getElementById('scanButton');
+            const pauseButton = document.getElementById('pauseButton');
 
             if (isScanning) {
                 return;
             }
             
             displayMessage("Наведите камеру на код DataMatrix...", 'status-checking');
-            button.disabled = true;
+            button.disabled = false;
             button.textContent = '... СКАНИРОВАНИЕ АКТИВНО ...';
-            button.classList.remove('start');
+            button.classList.remove('start', 'paused');
             button.classList.add('scanning');
+            
+            pauseButton.disabled = false;
+            isPaused = false;
+            pauseButton.textContent = '⏸️ Пауза';
+            pauseButton.classList.remove('paused');
 
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode(readerId);
@@ -769,22 +746,52 @@
                 cameraConstraints, 
                 config, 
                 onScanSuccess, 
-                (errorMessage) => { 
-                    // Игнорируем ошибки, пока камера ищет код
-                }
+                onScanFailure
             ).then(() => {
                 isScanning = true;
-                button.disabled = true; 
             }).catch(err => {
                 alert("Ошибка запуска камеры. Проверьте, дали ли вы разрешение браузеру.");
                 console.error("Camera start failed:", err);
                 
-                button.disabled = false;
+                stopScan();
                 button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
                 button.classList.remove('scanning');
                 button.classList.add('start');
                 displayMessage("Не удалось запустить камеру.", 'status-error');
             });
+        }
+
+        function stopScan() {
+            const button = document.getElementById('scanButton');
+            const pauseButton = document.getElementById('pauseButton');
+            const readerElement = document.getElementById(readerId);
+
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then(() => {
+                    isScanning = false;
+                    isPaused = false;
+                    button.disabled = false;
+                    button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
+                    button.classList.remove('scanning', 'paused');
+                    button.classList.add('start');
+                    
+                    pauseButton.disabled = true;
+                    pauseButton.textContent = '⏸️ Пауза';
+                    pauseButton.classList.remove('paused');
+                    
+                    // Убираем оверлей паузы если был
+                    const overlay = readerElement.querySelector('.scanning-overlay');
+                    if (overlay) {
+                        overlay.remove();
+                    }
+                    
+                    readerElement.innerHTML = '<div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>';
+                    displayMessage('Сканирование остановлено', 'status-ok');
+
+                }).catch(err => {
+                    console.error("Ошибка при остановке сканирования:", err);
+                });
+            }
         }
 
         // Закрытие модальных окон при клике вне их
@@ -797,6 +804,13 @@
         document.getElementById('clearModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 hideClearModal();
+            }
+        });
+
+        // Остановка сканирования при закрытии страницы
+        window.addEventListener('beforeunload', function() {
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop();
             }
         });
     </script>
