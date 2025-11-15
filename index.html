@@ -200,11 +200,36 @@
             }
         }
 
-        // --- ФУНКЦИЯ ФОРМАТИРОВАНИЯ: УДАЛЯЕМ ТОЛЬКО GS/FNC1 ---
+        // --- ФУНКЦИЯ ФОРМАТИРОВАНИЯ: ОБРЕЗАНИЕ ПОСЛЕ ПЕРВОГО GS ---
         function formatGs1CodeForEdo(decodedText) {
-            // Удаляем символ GS (ASCII 29) из всей строки. 
-            // Это оставляет все AI (01, 21, 91, 92) и данные склеенными, как в XML/ЭДО.
-            return decodedText.replace(new RegExp(GS, 'g'), '');
+            // 1. Находим позицию первого символа GS (ASCII 29)
+            // ВАЖНО: Первый символ GS является FNC1 в начале строки. 
+            // Нам нужно найти ВТОРОЙ символ GS, который стоит после серийного номера.
+            
+            const firstGSIndex = decodedText.indexOf(GS); // Это FNC1
+            
+            if (firstGSIndex === -1) {
+                // Если GS вообще нет (не GS1 код), возвращаем null
+                return null;
+            }
+
+            // Ищем второй символ GS, начиная с позиции после первого
+            const secondGSIndex = decodedText.indexOf(GS, firstGSIndex + 1);
+
+            let result = decodedText;
+
+            if (secondGSIndex !== -1) {
+                // Обрезаем строку, оставляя все до второго GS
+                result = decodedText.substring(0, secondGSIndex);
+            }
+            
+            // 2. Удаляем первый символ GS (FNC1)
+            if (result.startsWith(GS)) {
+                result = result.substring(1);
+            }
+            
+            // Теперь результат должен быть: 01(GTIN)21(Серийный номер)
+            return result;
         }
 
 
@@ -221,11 +246,11 @@
                 return;
             }
 
-            // 3. ФОРМАТИРОВАНИЕ ДЛЯ ЭДО: Удаляем только разделители GS
+            // 3. ФОРМАТИРОВАНИЕ ДЛЯ ЭДО: Обрезаем после серийного номера
             const serializedCode = formatGs1CodeForEdo(decodedText);
 
             if (!serializedCode || serializedCode.length < 25) {
-                stopScanAfterSuccess(false, "Ошибка форматирования: Код слишком короткий.");
+                stopScanAfterSuccess(false, "Ошибка форматирования: Не удалось извлечь КИЗ. Проверьте структуру кода.");
                 return;
             }
             
