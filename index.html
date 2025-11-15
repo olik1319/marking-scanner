@@ -72,36 +72,6 @@
             text-align: center;
         }
 
-        /* Flashlight button */
-        .flashlight-btn {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            transition: all 0.3s ease;
-            z-index: 100;
-        }
-
-        .flashlight-btn:hover {
-            background: rgba(0, 0, 0, 0.9);
-            transform: scale(1.1);
-        }
-
-        .flashlight-btn.active {
-            background: var(--warning-color);
-            color: #000;
-        }
-
         /* Results Display */
         #results {
             text-align: center;
@@ -433,12 +403,6 @@
                 gap: 12px;
             }
 
-            .flashlight-btn {
-                width: 45px;
-                height: 45px;
-                font-size: 1.3rem;
-            }
-
             .toast {
                 top: 10px;
                 right: 10px;
@@ -484,14 +448,6 @@
                 padding: 15px 10px;
             }
 
-            .flashlight-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 1.2rem;
-                bottom: 10px;
-                right: 10px;
-            }
-
             .toast {
                 padding: 15px 20px;
                 font-size: 1.1rem;
@@ -520,7 +476,6 @@
         
         <div id="reader">
             <div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>
-            <button id="flashlightBtn" class="flashlight-btn" title="Включить фонарик">🔦</button>
         </div>
         
         <div id="info-message"></div>
@@ -595,9 +550,6 @@
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
-        let isFlashOn = false;
-        let stream = null;
-        let track = null;
         const readerId = "reader";
         
         // Символ GS (ASCII 29) - разделитель групп данных / FNC1
@@ -650,68 +602,6 @@
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
-        }
-
-        // Функция включения/выключения фонарика
-        async function toggleFlashlight() {
-            const flashlightBtn = document.getElementById('flashlightBtn');
-            
-            if (!isScanning) {
-                showToast('Сначала запустите сканирование', true);
-                return;
-            }
-
-            try {
-                if (!isFlashOn) {
-                    // Включаем фонарик
-                    if (!stream) {
-                        stream = await navigator.mediaDevices.getUserMedia({
-                            video: { facingMode: 'environment' }
-                        });
-                    }
-                    
-                    track = stream.getVideoTracks()[0];
-                    if (track && track.getCapabilities().torch) {
-                        await track.applyConstraints({
-                            advanced: [{ torch: true }]
-                        });
-                        isFlashOn = true;
-                        flashlightBtn.classList.add('active');
-                        flashlightBtn.innerHTML = '💡';
-                        showToast('Фонарик включен');
-                    } else {
-                        showToast('Фонарик не поддерживается на этом устройстве', true);
-                    }
-                } else {
-                    // Выключаем фонарик
-                    if (track && track.getCapabilities().torch) {
-                        await track.applyConstraints({
-                            advanced: [{ torch: false }]
-                        });
-                        isFlashOn = false;
-                        flashlightBtn.classList.remove('active');
-                        flashlightBtn.innerHTML = '🔦';
-                        showToast('Фонарик выключен');
-                    }
-                }
-            } catch (error) {
-                console.error('Ошибка при управлении фонариком:', error);
-                showToast('Ошибка при включении фонарика', true);
-            }
-        }
-
-        // Показать/скрыть кнопку фонарика
-        function updateFlashlightButton() {
-            const flashlightBtn = document.getElementById('flashlightBtn');
-            if (isScanning) {
-                flashlightBtn.style.display = 'flex';
-            } else {
-                flashlightBtn.style.display = 'none';
-                // Выключаем фонарик при остановке сканирования
-                if (isFlashOn) {
-                    toggleFlashlight();
-                }
-            }
         }
 
         // Функция создания CSV файла
@@ -956,7 +846,6 @@
                 onScanFailure
             ).then(() => {
                 isScanning = true;
-                updateFlashlightButton();
                 showToast('Сканирование начато!');
             }).catch(err => {
                 showToast("Ошибка запуска камеры. Проверьте разрешение.", true);
@@ -984,12 +873,6 @@
                     readerElement.innerHTML = '<div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>';
                     displayMessage('Сканирование остановлено', 'status-ok');
                     
-                    // Выключаем фонарик и скрываем кнопку
-                    if (isFlashOn) {
-                        toggleFlashlight();
-                    }
-                    updateFlashlightButton();
-                    
                     showToast('Сканирование остановлено');
 
                 }).catch(err => {
@@ -1016,16 +899,7 @@
             if (html5QrCode && isScanning) {
                 html5QrCode.stop();
             }
-            // Выключаем фонарик при закрытии страницы
-            if (isFlashOn && track) {
-                track.applyConstraints({
-                    advanced: [{ torch: false }]
-                });
-            }
         });
-
-        // Инициализация кнопки фонарика
-        document.getElementById('flashlightBtn').addEventListener('click', toggleFlashlight);
     </script>
 </body>
 </html>
