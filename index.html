@@ -129,7 +129,7 @@
         }
 
         /* Остальные кнопки тоже увеличены, но меньше чем основная */
-        #exportButton, #shareButton {
+        #exportButton, #shareButton, #clearButton {
             padding: 22px 20px;
             border: none;
             border-radius: 12px;
@@ -172,6 +172,11 @@
         /* Share Button Specific Styles */
         #shareButton {
             background: linear-gradient(45deg, var(--info-color), #138496);
+        }
+        
+        /* Clear Button Specific Styles */
+        #clearButton {
+            background: linear-gradient(45deg, var(--danger-color), #c82333);
         }
         
         /* Share Modal Styles */
@@ -264,6 +269,57 @@
         .modal-cancel:hover {
             background: #d1d5db;
         }
+
+        /* Confirmation Modal */
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .confirmation-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .confirmation-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+        
+        .confirm-button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .confirm-yes {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .confirm-no {
+            background: var(--background-dark);
+            color: var(--text-color);
+        }
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -286,7 +342,7 @@
                 min-height: 90px;
             }
             
-            #exportButton, #shareButton {
+            #exportButton, #shareButton, #clearButton {
                 padding: 20px 18px;
                 font-size: 1.3rem;
                 min-height: 75px;
@@ -310,7 +366,7 @@
                 border-radius: 12px;
             }
             
-            #exportButton, #shareButton {
+            #exportButton, #shareButton, #clearButton {
                 padding: 18px 15px;
                 font-size: 1.2rem;
                 min-height: 70px;
@@ -339,7 +395,7 @@
                 min-height: 80px;
             }
             
-            #exportButton, #shareButton {
+            #exportButton, #shareButton, #clearButton {
                 padding: 16px 12px;
                 font-size: 1.1rem;
                 min-height: 65px;
@@ -362,6 +418,7 @@
             <button id="scanButton" class="start" onclick="startScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
             <button id="exportButton" onclick="exportCSV()">💾 Экспорт в CSV</button>
             <button id="shareButton" onclick="showShareModal()">📤 Поделиться CSV</button>
+            <button id="clearButton" onclick="showClearConfirmation()">🗑️ Очистить список</button>
         </div>
     </div>
 
@@ -369,7 +426,8 @@
     <div id="shareModal" class="share-modal">
         <div class="share-modal-content">
             <h3>📤 Отправить CSV файл</h3>
-            <p>Выберите способ отправки отсканированных кодов:</p>
+            <p>Отсканировано кодов: <strong id="codes-count">0</strong></p>
+            <p>Выберите способ отправки:</p>
             
             <div class="share-options">
                 <div class="share-option" onclick="shareViaTelegram()">
@@ -386,15 +444,23 @@
                     <div class="share-icon">📧</div>
                     <div class="share-name">Email</div>
                 </div>
-                
-                <div class="share-option" onclick="downloadAndShare()">
-                    <div class="share-icon">📥</div>
-                    <div class="share-name">Скачать</div>
-                </div>
             </div>
             
             <div class="modal-buttons">
                 <button class="modal-button modal-cancel" onclick="hideShareModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения очистки -->
+    <div id="clearModal" class="confirmation-modal">
+        <div class="confirmation-content">
+            <h3>🗑️ Очистить список</h3>
+            <p>Вы уверены, что хотите очистить список отсканированных кодов?</p>
+            <p><strong>Отсканировано: <span id="clear-codes-count">0</span> кодов</strong></p>
+            <div class="confirmation-buttons">
+                <button class="confirm-button confirm-yes" onclick="clearCodes()">Да, очистить</button>
+                <button class="confirm-button confirm-no" onclick="hideClearModal()">Отмена</button>
             </div>
         </div>
     </div>
@@ -408,17 +474,31 @@
         // Символ GS (ASCII 29) - разделитель групп данных / FNC1
         const GS = String.fromCharCode(29); 
 
-        // Функции для модального окна
+        // Функции для модальных окон
         function showShareModal() {
             if (codes.length === 0) {
                 alert('Нет отсканированных кодов для отправки.');
                 return;
             }
+            document.getElementById('codes-count').textContent = codes.length;
             document.getElementById('shareModal').style.display = 'flex';
         }
 
         function hideShareModal() {
             document.getElementById('shareModal').style.display = 'none';
+        }
+
+        function showClearConfirmation() {
+            if (codes.length === 0) {
+                alert('Список кодов уже пуст.');
+                return;
+            }
+            document.getElementById('clear-codes-count').textContent = codes.length;
+            document.getElementById('clearModal').style.display = 'flex';
+        }
+
+        function hideClearModal() {
+            document.getElementById('clearModal').style.display = 'none';
         }
 
         // Функция создания CSV файла
@@ -435,117 +515,120 @@
             return window.URL.createObjectURL(blob);
         }
 
-        // Отправка через Telegram
+        // Прямая отправка в Telegram
         function shareViaTelegram() {
-            const blob = createCSVBlob();
-            const file = new File([blob], "marking_codes.csv", { type: "text/csv" });
-            
-            if (navigator.share) {
-                // Используем Web Share API если доступен
-                navigator.share({
-                    title: 'Отсканированные коды',
-                    text: `Отсканировано ${codes.length} кодов`,
-                    files: [file]
-                }).then(() => {
-                    hideShareModal();
-                }).catch(err => {
-                    console.log('Web Share cancelled or failed:', err);
-                    fallbackTelegramShare();
-                });
-            } else {
-                fallbackTelegramShare();
+            if (codes.length === 0) {
+                alert('Нет кодов для отправки.');
+                return;
             }
-        }
 
-        function fallbackTelegramShare() {
-            // Альтернативный способ для Telegram
             const blob = createCSVBlob();
             const url = createFileURL(blob);
             
-            // Создаем временную ссылку для скачивания
+            // Создаем ссылку для скачивания
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'marking_codes.csv';
+            a.download = `marking_codes_${codes.length}_items.csv`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             
-            // Показываем сообщение с инструкцией
+            // Сразу закрываем модальное окно
+            hideShareModal();
+            
+            // Показываем инструкцию
             setTimeout(() => {
-                alert('Файл скачан. Теперь вы можете отправить его в Telegram:\n1. Откройте Telegram\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите скачанный файл');
+                if (confirm(`Файл с ${codes.length} кодами скачан!\n\nОткрыть Telegram для отправки файла?`)) {
+                    // Пытаемся открыть Telegram
+                    window.open('tg://', '_blank');
+                    
+                    // Дополнительная инструкция
+                    setTimeout(() => {
+                        alert('Если Telegram не открылся:\n1. Откройте Telegram вручную\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите скачанный файл');
+                    }, 1000);
+                }
             }, 500);
             
-            hideShareModal();
-            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+            setTimeout(() => window.URL.revokeObjectURL(url), 3000);
         }
 
-        // Отправка через WhatsApp
+        // Прямая отправка в WhatsApp
         function shareViaWhatsApp() {
-            const blob = createCSVBlob();
-            const file = new File([blob], "marking_codes.csv", { type: "text/csv" });
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Отсканированные коды',
-                    text: `Отсканировано ${codes.length} кодов`,
-                    files: [file]
-                }).then(() => {
-                    hideShareModal();
-                }).catch(err => {
-                    console.log('Web Share cancelled or failed:', err);
-                    fallbackWhatsAppShare();
-                });
-            } else {
-                fallbackWhatsAppShare();
+            if (codes.length === 0) {
+                alert('Нет кодов для отправки.');
+                return;
             }
-        }
 
-        function fallbackWhatsAppShare() {
-            // Для WhatsApp используем скачивание файла
             const blob = createCSVBlob();
             const url = createFileURL(blob);
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'marking_codes.csv';
+            a.download = `marking_codes_${codes.length}_items.csv`;
+            document.body.appendChild(a);
             a.click();
-            
-            setTimeout(() => {
-                alert('Файл скачан. Теперь вы можете отправить его в WhatsApp:\n1. Откройте WhatsApp\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите "Документ"\n5. Найдите скачанный файл');
-            }, 500);
+            document.body.removeChild(a);
             
             hideShareModal();
-            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+            
+            setTimeout(() => {
+                if (confirm(`Файл с ${codes.length} кодами скачан!\n\nОткрыть WhatsApp для отправки файла?`)) {
+                    window.open('whatsapp://send', '_blank');
+                    
+                    setTimeout(() => {
+                        alert('Если WhatsApp не открылся:\n1. Откройте WhatsApp вручную\n2. Выберите чат\n3. Нажмите на скрепку 📎\n4. Выберите "Документ"\n5. Найдите скачанный файл');
+                    }, 1000);
+                }
+            }, 500);
+            
+            setTimeout(() => window.URL.revokeObjectURL(url), 3000);
         }
 
         // Отправка через Email
         function shareViaEmail() {
+            if (codes.length === 0) {
+                alert('Нет кодов для отправки.');
+                return;
+            }
+
             const csvContent = codes.join('\n');
             const subject = `Отсканированные коды (${codes.length} шт)`;
             const body = `Во вложении CSV файл с ${codes.length} отсканированными кодами.\n\nСписок кодов:\n${csvContent}`;
             
-            const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            
-            // Создаем и прикрепляем файл
             const blob = createCSVBlob();
             const url = createFileURL(blob);
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'marking_codes.csv';
+            a.download = `marking_codes_${codes.length}_items.csv`;
+            document.body.appendChild(a);
             a.click();
-            
-            setTimeout(() => {
-                // Открываем почтовый клиент после скачивания файла
-                window.location.href = mailtoLink;
-            }, 1000);
+            document.body.removeChild(a);
             
             hideShareModal();
+            
+            setTimeout(() => {
+                if (confirm(`Файл с ${codes.length} кодами скачан!\n\nОткрыть почтовый клиент для отправки?`)) {
+                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.location.href = mailtoLink;
+                }
+            }, 500);
+            
             setTimeout(() => window.URL.revokeObjectURL(url), 5000);
         }
 
-        // Простое скачивание
-        function downloadAndShare() {
-            exportCSV();
-            hideShareModal();
+        // Очистка списка кодов
+        function clearCodes() {
+            codes = [];
+            updateResults();
+            hideClearModal();
+            displayMessage('Список кодов очищен', 'status-ok');
+        }
+
+        // Обновление счетчика кодов
+        function updateResults() {
+            document.getElementById('results').innerHTML = 
+                'Отсканировано: ' + codes.length + ' кодов';
         }
 
         // Функция для отображения сообщений
@@ -623,9 +706,14 @@
                 return;
             }
             
+            // Проверяем дубликаты
+            if (codes.includes(serializedCode)) {
+                stopScanAfterSuccess(false, "Этот код уже был отсканирован ранее.");
+                return;
+            }
+            
             codes.push(serializedCode);
-            document.getElementById('results').innerHTML = 
-                'Отсканировано: ' + codes.length + ' кодов';
+            updateResults();
             
             stopScanAfterSuccess(true, `Код отформатирован для ЭДО: ${serializedCode}`);
         }
@@ -640,7 +728,7 @@
             const url = createFileURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'marking_codes.csv';
+            a.download = `marking_codes_${codes.length}_items.csv`;
             a.click();
             setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         }
@@ -699,10 +787,16 @@
             });
         }
 
-        // Закрытие модального окна при клике вне его
+        // Закрытие модальных окон при клике вне их
         document.getElementById('shareModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 hideShareModal();
+            }
+        });
+
+        document.getElementById('clearModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideClearModal();
             }
         });
     </script>
