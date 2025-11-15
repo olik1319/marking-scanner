@@ -139,6 +139,7 @@
     </div>
 
     <script>
+        // Теперь codes хранит только строки с кодами
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
@@ -166,15 +167,12 @@
         }
 
         function onScanSuccess(decodedText) {
-            // 1. Обрабатываем код
-            codes.push({
-                code: decodedText,
-                timestamp: new Date().toLocaleString()
-            });
+            // 1. Обрабатываем код (сохраняем только код, без даты)
+            codes.push(decodedText);
             document.getElementById('results').innerHTML = 
                 'Отсканировано: ' + codes.length + ' кодов';
             
-            // 2. Сразу останавливаем сканирование, чтобы оно не было непрерывным
+            // 2. Сразу останавливаем сканирование
             stopScanAfterSuccess(); 
         }
 
@@ -184,11 +182,14 @@
                 return;
             }
 
-            let csv = 'Код,Время сканирования\n';
-            codes.forEach(row => {
-                csv += `"${row.code}","${row.timestamp}"\n`;
+            // --- Изменено: Убрана шапка и дата ---
+            let csv = ''; 
+            codes.forEach(codeString => {
+                // Добавляем только код, заключенный в кавычки
+                csv += `"${codeString}"\n`;
             });
             
+            // Создаем Blob с BOM (\uFEFF) для корректного отображения кириллицы
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -202,7 +203,6 @@
             const button = document.getElementById('scanButton');
 
             if (isScanning) {
-                // Если уже сканируем, игнорируем нажатие
                 return;
             }
             
@@ -213,13 +213,12 @@
             button.classList.add('scanning');
 
             if (!html5QrCode) {
-                // Инициализируем сканер только при первом запуске
                 html5QrCode = new Html5Qrcode(readerId);
             }
 
-            // --- Ключевое изменение: Запрос тыльной камеры ---
+            // Запрашиваем тыльную камеру
             const cameraConstraints = { 
-                facingMode: "environment" // Запрашиваем тыльную камеру
+                facingMode: "environment" 
             };
 
             html5QrCode.start(
@@ -227,13 +226,13 @@
                 { fps: 10, qrbox: 250 }, 
                 onScanSuccess, 
                 (errorMessage) => { 
-                    // Игнорируем ошибки (например, когда камера ищет код)
+                    // Игнорируем ошибки
                 }
             ).then(() => {
                 isScanning = true;
-                button.disabled = true; // Держим кнопку заблокированной, пока идет скан
+                button.disabled = true; 
             }).catch(err => {
-                alert("Ошибка запуска камеры. Проверьте, дали ли вы разрешение или попробуйте перезагрузить страницу.");
+                alert("Ошибка запуска камеры. Проверьте, дали ли вы разрешение браузеру.");
                 console.error("Camera start failed:", err);
                 
                 // Сбрасываем UI в случае ошибки
