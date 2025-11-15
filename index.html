@@ -72,23 +72,6 @@
             text-align: center;
         }
 
-        /* Scanning overlay */
-        .scanning-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 1.2rem;
-            font-weight: bold;
-            z-index: 10;
-        }
-
         /* Results Display */
         #results {
             text-align: center;
@@ -147,7 +130,7 @@
         }
 
         /* Остальные кнопки тоже увеличены, но меньше чем основная */
-        #exportButton, #shareButton, #clearButton, #pauseButton {
+        #exportButton, #shareButton, #clearButton {
             padding: 22px 20px;
             border: none;
             border-radius: 12px;
@@ -181,10 +164,6 @@
             background: linear-gradient(45deg, var(--warning-color), #e0a800);
             cursor: default;
         }
-
-        #scanButton.paused {
-            background: linear-gradient(45deg, #6c757d, #495057);
-        }
         
         /* Export Button Specific Styles */
         #exportButton {
@@ -199,15 +178,6 @@
         /* Clear Button Specific Styles */
         #clearButton {
             background: linear-gradient(45deg, var(--danger-color), #c82333);
-        }
-
-        /* Pause Button Specific Styles */
-        #pauseButton {
-            background: linear-gradient(45deg, #6c757d, #495057);
-        }
-
-        #pauseButton.paused {
-            background: linear-gradient(45deg, var(--secondary-color), #1e7e34);
         }
         
         /* Share Modal Styles */
@@ -351,6 +321,39 @@
             background: var(--background-dark);
             color: var(--text-color);
         }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--secondary-color);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: var(--danger-color);
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+        }
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -373,10 +376,22 @@
                 min-height: 90px;
             }
             
-            #exportButton, #shareButton, #clearButton, #pauseButton {
+            #exportButton, #shareButton, #clearButton {
                 padding: 20px 18px;
                 font-size: 1.3rem;
                 min-height: 75px;
+            }
+
+            .toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+                transform: translateY(-100px);
+            }
+
+            .toast.show {
+                transform: translateY(0);
             }
         }
         
@@ -397,7 +412,7 @@
                 border-radius: 12px;
             }
             
-            #exportButton, #shareButton, #clearButton, #pauseButton {
+            #exportButton, #shareButton, #clearButton {
                 padding: 18px 15px;
                 font-size: 1.2rem;
                 min-height: 70px;
@@ -416,6 +431,11 @@
                 min-width: 70px;
                 padding: 12px;
             }
+
+            .toast {
+                padding: 15px 20px;
+                font-size: 1.1rem;
+            }
         }
 
         /* Для очень маленьких экранов */
@@ -426,7 +446,7 @@
                 min-height: 80px;
             }
             
-            #exportButton, #shareButton, #clearButton, #pauseButton {
+            #exportButton, #shareButton, #clearButton {
                 padding: 16px 12px;
                 font-size: 1.1rem;
                 min-height: 65px;
@@ -447,11 +467,16 @@
 
         <div class="button-group">
             <button id="scanButton" class="start" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
-            <button id="pauseButton" onclick="togglePause()">⏸️ Пауза</button>
             <button id="exportButton" onclick="exportCSV()">💾 Скачать CSV</button>
             <button id="shareButton" onclick="showShareModal()">📤 Поделиться</button>
             <button id="clearButton" onclick="showClearConfirmation()">🗑️ Очистить список</button>
         </div>
+    </div>
+
+    <!-- Toast уведомление -->
+    <div id="toast" class="toast">
+        <span class="toast-icon">✅</span>
+        <span id="toast-message">Код успешно отсканирован!</span>
     </div>
 
     <!-- Модальное окно для выбора способа отправки -->
@@ -491,7 +516,6 @@
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
-        let isPaused = false;
         const readerId = "reader";
         
         // Символ GS (ASCII 29) - разделитель групп данных / FNC1
@@ -500,7 +524,7 @@
         // Функции для модальных окон
         function showShareModal() {
             if (codes.length === 0) {
-                alert('Нет отсканированных кодов для отправки.');
+                showToast('Нет отсканированных кодов для отправки.', true);
                 return;
             }
             document.getElementById('codes-count').textContent = codes.length;
@@ -513,7 +537,7 @@
 
         function showClearConfirmation() {
             if (codes.length === 0) {
-                alert('Список кодов уже пуст.');
+                showToast('Список кодов уже пуст.', true);
                 return;
             }
             document.getElementById('clear-codes-count').textContent = codes.length;
@@ -522,6 +546,28 @@
 
         function hideClearModal() {
             document.getElementById('clearModal').style.display = 'none';
+        }
+
+        // Toast уведомления
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toastMessage.textContent = message;
+            toast.className = 'toast';
+            
+            if (isError) {
+                toast.classList.add('error');
+                toast.querySelector('.toast-icon').textContent = '❌';
+            } else {
+                toast.querySelector('.toast-icon').textContent = '✅';
+            }
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
         }
 
         // Функция создания CSV файла
@@ -540,16 +586,17 @@
             
             // Показываем подсказку после скачивания
             setTimeout(() => {
-                alert('Файл скачан! Теперь вы можете:\n\n1. Найти его в папке "Загрузки"\n2. Открыть любое приложение (Telegram, WhatsApp и др.)\n3. Выбрать "Прикрепить файл"\n4. Найти скачанный CSV файл');
+                showToast('Файл скачан! Теперь можете отправить его через любое приложение.');
             }, 500);
         }
 
         // Очистка списка кодов
         function clearCodes() {
+            const count = codes.length;
             codes = [];
             updateResults();
             hideClearModal();
-            displayMessage('Список кодов очищен', 'status-ok');
+            showToast(`Список очищен. Удалено ${count} кодов.`);
         }
 
         // Обновление счетчика кодов
@@ -563,49 +610,6 @@
             const msgElement = document.getElementById('info-message');
             msgElement.textContent = text;
             msgElement.className = className;
-        }
-
-        // Переключение паузы
-        function togglePause() {
-            const pauseButton = document.getElementById('pauseButton');
-            const scanButton = document.getElementById('scanButton');
-            const readerElement = document.getElementById(readerId);
-            
-            if (!isScanning) {
-                displayMessage('Сканирование не активно', 'status-error');
-                return;
-            }
-            
-            isPaused = !isPaused;
-            
-            if (isPaused) {
-                // Пауза
-                pauseButton.textContent = '▶️ Продолжить';
-                pauseButton.classList.add('paused');
-                scanButton.textContent = '⏸️ Сканирование на паузе';
-                scanButton.classList.remove('scanning');
-                scanButton.classList.add('paused');
-                
-                // Показываем оверлей паузы
-                readerElement.innerHTML += '<div class="scanning-overlay">⏸️ Сканирование на паузе</div>';
-                
-                displayMessage('Сканирование приостановлено', 'status-checking');
-            } else {
-                // Продолжение
-                pauseButton.textContent = '⏸️ Пауза';
-                pauseButton.classList.remove('paused');
-                scanButton.textContent = '... СКАНИРОВАНИЕ АКТИВНО ...';
-                scanButton.classList.remove('paused');
-                scanButton.classList.add('scanning');
-                
-                // Убираем оверлей паузы
-                const overlay = readerElement.querySelector('.scanning-overlay');
-                if (overlay) {
-                    overlay.remove();
-                }
-                
-                displayMessage('Сканирование продолжено', 'status-checking');
-            }
         }
 
         // --- ФУНКЦИЯ ФОРМАТИРОВАНИЯ: ОБРЕЗАНИЕ ПОСЛЕ ПЕРВОГО GS ---
@@ -631,54 +635,46 @@
         }
 
         function onScanSuccess(decodedText, result) {
-            // Проверяем не на паузе ли сканирование
-            if (isPaused) {
-                return;
-            }
-            
             if (result.result.format.formatName !== 'DATA_MATRIX') {
-                displayMessage(`Ошибка: Считан код формата ${result.result.format.formatName}. Требуется DataMatrix.`, 'status-error');
+                showToast(`Ошибка: Требуется DataMatrix, а не ${result.result.format.formatName}`, true);
                 return;
             }
 
             if (!decodedText.startsWith(GS)) {
-                displayMessage("Ошибка: Код DataMatrix не соответствует формату GS1 (нет символа GS в начале).", 'status-error');
+                showToast("Ошибка: Код не соответствует формату GS1", true);
                 return;
             }
 
             const serializedCode = formatGs1CodeForEdo(decodedText);
 
             if (!serializedCode || serializedCode.length < 25) {
-                displayMessage("Ошибка форматирования: Не удалось извлечь КИЗ. Проверьте структуру кода.", 'status-error');
+                showToast("Ошибка: Не удалось извлечь КИЗ из кода", true);
                 return;
             }
             
             // Проверяем дубликаты
             if (codes.includes(serializedCode)) {
-                displayMessage("Этот код уже был отсканирован ранее.", 'status-error');
+                showToast("Этот код уже был отсканирован ранее", true);
                 return;
             }
             
             codes.push(serializedCode);
             updateResults();
             
-            displayMessage(`✅ Код отсканирован: ${serializedCode}`, 'status-ok');
+            // Показываем всплывающее уведомление
+            showToast(`✅ Код отсканирован! Всего: ${codes.length}`);
             
-            // Короткий звуковой сигнал (если нужно)
-            // beep();
+            // Короткое сообщение в основном блоке
+            displayMessage(`Последний код: ${serializedCode}`, 'status-ok');
         }
 
         function onScanFailure(error) {
-            // Игнорируем ошибки, пока сканирование активно и не на паузе
-            if (isScanning && !isPaused) {
-                // Можно добавить логирование ошибок, но не показывать пользователю
-                // console.log('Scan error:', error);
-            }
+            // Игнорируем ошибки, пока сканирование активно
         }
 
         function exportCSV() {
             if (codes.length === 0) {
-                alert('Нет отсканированных кодов для экспорта.');
+                showToast('Нет отсканированных кодов для экспорта.', true);
                 return;
             }
 
@@ -689,6 +685,8 @@
             a.download = `marking_codes_${codes.length}_items.csv`;
             a.click();
             setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+            
+            showToast(`CSV файл с ${codes.length} кодами скачан`);
         }
 
         // Функция создания временной ссылки для файла
@@ -706,7 +704,6 @@
 
         function startScan() {
             const button = document.getElementById('scanButton');
-            const pauseButton = document.getElementById('pauseButton');
 
             if (isScanning) {
                 return;
@@ -715,13 +712,8 @@
             displayMessage("Наведите камеру на код DataMatrix...", 'status-checking');
             button.disabled = false;
             button.textContent = '... СКАНИРОВАНИЕ АКТИВНО ...';
-            button.classList.remove('start', 'paused');
+            button.classList.remove('start');
             button.classList.add('scanning');
-            
-            pauseButton.disabled = false;
-            isPaused = false;
-            pauseButton.textContent = '⏸️ Пауза';
-            pauseButton.classList.remove('paused');
 
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode(readerId);
@@ -749,44 +741,34 @@
                 onScanFailure
             ).then(() => {
                 isScanning = true;
+                showToast('Сканирование начато!');
             }).catch(err => {
-                alert("Ошибка запуска камеры. Проверьте, дали ли вы разрешение браузеру.");
+                showToast("Ошибка запуска камеры. Проверьте разрешение.", true);
                 console.error("Camera start failed:", err);
                 
                 stopScan();
                 button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
                 button.classList.remove('scanning');
                 button.classList.add('start');
-                displayMessage("Не удалось запустить камеру.", 'status-error');
             });
         }
 
         function stopScan() {
             const button = document.getElementById('scanButton');
-            const pauseButton = document.getElementById('pauseButton');
             const readerElement = document.getElementById(readerId);
 
             if (html5QrCode && isScanning) {
                 html5QrCode.stop().then(() => {
                     isScanning = false;
-                    isPaused = false;
                     button.disabled = false;
                     button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
-                    button.classList.remove('scanning', 'paused');
+                    button.classList.remove('scanning');
                     button.classList.add('start');
-                    
-                    pauseButton.disabled = true;
-                    pauseButton.textContent = '⏸️ Пауза';
-                    pauseButton.classList.remove('paused');
-                    
-                    // Убираем оверлей паузы если был
-                    const overlay = readerElement.querySelector('.scanning-overlay');
-                    if (overlay) {
-                        overlay.remove();
-                    }
                     
                     readerElement.innerHTML = '<div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>';
                     displayMessage('Сканирование остановлено', 'status-ok');
+                    
+                    showToast('Сканирование остановлено');
 
                 }).catch(err => {
                     console.error("Ошибка при остановке сканирования:", err);
