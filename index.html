@@ -96,7 +96,7 @@
             font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
             color: white;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
@@ -106,13 +106,14 @@
             box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
         }
         
-        /* Start/Stop Button Specific Styles */
+        /* Start Button Specific Styles */
         #scanButton.start {
             background: linear-gradient(45deg, var(--primary-color), #0056b3);
         }
 
-        #scanButton.stop {
-            background: linear-gradient(45deg, #dc3545, #c82333); /* Red for stopping */
+        #scanButton.scanning {
+            background: linear-gradient(45deg, #ffc107, #e0a800); /* Yellow/Orange when active */
+            cursor: default;
         }
         
         /* Export Button Specific Styles */
@@ -123,7 +124,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>✨ Сканер кодов</h1>
+        <h1>✨ Сканер кодов (По нажатию)</h1>
         
         <div id="reader">
             <div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>
@@ -132,7 +133,7 @@
         <div id="results">Отсканировано: 0 кодов</div>
 
         <div class="button-group">
-            <button id="scanButton" class="start" onclick="toggleScan()">▶️ Начать сканирование</button>
+            <button id="scanButton" class="start" onclick="startScan()">▶️ Начать сканирование</button>
             <button id="exportButton" onclick="exportCSV()">💾 Экспорт в CSV</button>
         </div>
     </div>
@@ -143,15 +144,38 @@
         let isScanning = false;
         const readerId = "reader";
 
+        // --- Функция остановки сканирования после успешного считывания ---
+        function stopScanAfterSuccess() {
+            const button = document.getElementById('scanButton');
+            const readerElement = document.getElementById(readerId);
+
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then(() => {
+                    isScanning = false;
+                    button.textContent = '✅ Скан готов. Начать следующий?';
+                    button.classList.remove('scanning');
+                    button.classList.add('start');
+                    button.disabled = false; // Разрешаем повторное нажатие
+                    
+                    // Возвращаем заглушку в область сканера
+                    readerElement.innerHTML = '<div class="placeholder">Код успешно считан. Нажмите "Начать" для следующего.</div>';
+                }).catch(err => {
+                    console.error("Ошибка при остановке сканирования:", err);
+                });
+            }
+        }
+
         function onScanSuccess(decodedText) {
-            // Добавляем код и время в массив
+            // 1. Обрабатываем код
             codes.push({
                 code: decodedText,
                 timestamp: new Date().toLocaleString()
             });
-            // Обновляем счетчик
             document.getElementById('results').innerHTML = 
                 'Отсканировано: ' + codes.length + ' кодов';
+            
+            // 2. Сразу останавливаем сканирование, чтобы оно не было непрерывным
+            stopScanAfterSuccess(); 
         }
 
         function exportCSV() {
@@ -160,80 +184,64 @@
                 return;
             }
 
-            // Формируем CSV строку
             let csv = 'Код,Время сканирования\n';
             codes.forEach(row => {
-                // Оборачиваем в кавычки для корректной обработки запятых
                 csv += `"${row.code}","${row.timestamp}"\n`;
             });
             
-            // Создаем Blob с BOM (\uFEFF) для корректного отображения кириллицы в Excel
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'marking_codes.csv';
-            
-            // Имитируем клик для начала скачивания
             a.click();
-
-            // Очистка
             window.URL.revokeObjectURL(url);
         }
 
-        function toggleScan() {
+        function startScan() {
             const button = document.getElementById('scanButton');
 
             if (isScanning) {
-                // --- Логика ОСТАНОВКИ ---
-                if (html5QrCode) {
-                    html5QrCode.stop().then(() => {
-                        isScanning = false;
-                        button.textContent = '▶️ Начать сканирование';
-                        button.classList.remove('stop');
-                        button.classList.add('start');
-                        // Возвращаем заглушку в область сканера
-                        document.getElementById(readerId).innerHTML = '<div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>';
-                    }).catch(err => {
-                        console.error("Ошибка при остановке сканирования:", err);
-                        alert("Не удалось остановить сканирование.");
-                    });
-                }
-            } else {
-                // --- Логика ЗАПУСКА ---
-                if (!html5QrCode) {
-                    // Инициализируем сканер только при первом запуске
-                    html5QrCode = new Html5Qrcode(readerId);
-                }
-
-                Html5Qrcode.getCameras().then(devices => {
-                    if (devices && devices.length) {
-                        // Используем первую доступную камеру
-                        const cameraId = devices[0].id; 
-                        
-                        html5QrCode.start(
-                            cameraId, 
-                            { fps: 10, qrbox: 250 }, 
-                            onScanSuccess, 
-                            (errorMessage) => { 
-                                // Можно игнорировать minor errors, чтобы не засорять консоль
-                            }
-                        ).then(() => {
-                            isScanning = true;
-                            button.textContent = '⏹️ Остановить сканирование';
-                            button.classList.remove('start');
-                            button.classList.add('stop');
-                        }).catch(err => {
-                            alert("Ошибка запуска камеры. Проверьте, дали ли вы разрешение браузеру.");
-                            console.error("Camera start failed:", err);
-                        });
-                    } else {
-                        alert("Камера не найдена на устройстве.");
-                    }
-                }).catch(err => {
-                    console.error("Ошибка получения списка камер:", err);
-                });
+                // Если уже сканируем, игнорируем нажатие
+                return;
             }
+            
+            // Блокируем кнопку и меняем UI
+            button.disabled = true;
+            button.textContent = '... Сканирование активно ...';
+            button.classList.remove('start');
+            button.classList.add('scanning');
+
+            if (!html5QrCode) {
+                // Инициализируем сканер только при первом запуске
+                html5QrCode = new Html5Qrcode(readerId);
+            }
+
+            // --- Ключевое изменение: Запрос тыльной камеры ---
+            const cameraConstraints = { 
+                facingMode: "environment" // Запрашиваем тыльную камеру
+            };
+
+            html5QrCode.start(
+                cameraConstraints, 
+                { fps: 10, qrbox: 250 }, 
+                onScanSuccess, 
+                (errorMessage) => { 
+                    // Игнорируем ошибки (например, когда камера ищет код)
+                }
+            ).then(() => {
+                isScanning = true;
+                button.disabled = true; // Держим кнопку заблокированной, пока идет скан
+            }).catch(err => {
+                alert("Ошибка запуска камеры. Проверьте, дали ли вы разрешение или попробуйте перезагрузить страницу.");
+                console.error("Camera start failed:", err);
+                
+                // Сбрасываем UI в случае ошибки
+                button.disabled = false;
+                button.textContent = '▶️ Начать сканирование';
+                button.classList.remove('scanning');
+                button.classList.add('start');
+            });
         }
     </script>
 </body>
