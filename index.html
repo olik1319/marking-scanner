@@ -1,237 +1,44 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сканер кодов маркировки</title>
+    <title>Сканер кодов</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 100%;
-            padding: 20px;
-            margin: 0;
-        }
-        #reader {
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        #results {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 18px;
-        }
-        button {
-            display: block;
-            width: 200px;
-            margin: 10px auto;
-            padding: 12px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        #status {
-            text-align: center;
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .error {
-            background: #ffebee;
-            color: #c62828;
-        }
-        .success {
-            background: #e8f5e8;
-            color: #2e7d32;
-        }
-    </style>
 </head>
 <body>
-    <h1 style="text-align: center;">Сканер кодов маркировки</h1>
-    
-    <div id="status"></div>
     <div id="reader"></div>
-    <div id="results">Отсканировано: 0 кодов</div>
-    
-    <button onclick="startScanner()">Запустить сканер</button>
-    <button onclick="stopScanner()">Остановить сканер</button>
+    <div id="results"></div>
     <button onclick="exportCSV()">Экспорт в CSV</button>
-    <button onclick="clearCodes()">Очистить список</button>
 
     <script>
         let codes = [];
-        let html5QrcodeScanner = null;
-        let isScanning = false;
-
-        function showStatus(message, type = 'success') {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = type;
-            setTimeout(() => {
-                statusEl.textContent = '';
-                statusEl.className = '';
-            }, 3000);
-        }
-
-        async function startScanner() {
-            if (isScanning) {
-                showStatus('Сканер уже запущен', 'error');
-                return;
-            }
-
-            try {
-                // Создаем сканер с поддержкой разных типов кодов
-                html5QrcodeScanner = new Html5QrcodeScanner(
-                    "reader", 
-                    { 
-                        fps: 10, 
-                        qrbox: { width: 250, height: 150 },
-                        supportedScanTypes: [
-                            Html5QrcodeScanType.SCAN_TYPE_QR_CODE,
-                            Html5QrcodeScanType.SCAN_TYPE_CODE_128,
-                            Html5QrcodeScanType.SCAN_TYPE_CODE_39,
-                            Html5QrcodeScanType.SCAN_TYPE_EAN_13,
-                            Html5QrcodeScanType.SCAN_TYPE_EAN_8
-                        ]
-                    },
-                    false
-                );
-
-                // Запускаем сканирование
-                await html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-                isScanning = true;
-                showStatus('Сканер запущен. Разрешите доступ к камере.');
-
-            } catch (error) {
-                console.error('Ошибка при запуске сканера:', error);
-                showStatus('Ошибка доступа к камере: ' + error.message, 'error');
-            }
-        }
-
-        async function stopScanner() {
-            if (!isScanning || !html5QrcodeScanner) {
-                return;
-            }
-
-            try {
-                await html5QrcodeScanner.clear();
-                html5QrcodeScanner = null;
-                isScanning = false;
-                showStatus('Сканер остановлен');
-            } catch (error) {
-                console.error('Ошибка при остановке сканера:', error);
-            }
-        }
-
-        function onScanSuccess(decodedText, decodedResult) {
-            // Проверяем на дубликаты
-            if (!codes.some(item => item.code === decodedText)) {
-                const newCode = {
-                    code: decodedText,
-                    timestamp: new Date().toLocaleString('ru-RU'),
-                    date: new Date().toISOString().split('T')[0],
-                    time: new Date().toLocaleTimeString('ru-RU')
-                };
-                
-                codes.push(newCode);
-                updateResults();
-                showStatus('Код успешно отсканирован!');
-                
-                // Звуковой сигнал (опционально)
-                beep();
-                
-            } else {
-                showStatus('Этот код уже был отсканирован', 'error');
-            }
-        }
-
-        function onScanFailure(error) {
-            // Игнорируем обычные ошибки сканирования
-            // Они происходят постоянно при поиске кода
-        }
-
-        function updateResults() {
+        
+        function onScanSuccess(decodedText) {
+            codes.push({
+                code: decodedText,
+                timestamp: new Date().toLocaleString()
+            });
             document.getElementById('results').innerHTML = 
-                'Отсканировано: ' + codes.length + ' кодов' +
-                (codes.length > 0 ? '<br>Последний: ' + codes[codes.length - 1].code : '');
+                'Отсканировано: ' + codes.length + ' кодов';
         }
 
         function exportCSV() {
-            if (codes.length === 0) {
-                showStatus('Нет данных для экспорта', 'error');
-                return;
-            }
-            
-            let csv = 'Код,Дата,Время,Полная дата\n';
+            let csv = 'Код,Время сканирования\n';
             codes.forEach(row => {
-                csv += `"${row.code}","${row.date}","${row.time}","${row.timestamp}"\n`;
+                csv += `"${row.code}","${row.timestamp}"\n`;
             });
             
-            // Добавляем BOM для правильного отображения кириллицы
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv; charset=utf-8' });
+            const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
             a.href = url;
-            a.download = `marking_codes_${timestamp}.csv`;
-            document.body.appendChild(a);
+            a.download = 'marking_codes.csv';
             a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            
-            showStatus(`Экспортировано ${codes.length} кодов в CSV`);
         }
 
-        function clearCodes() {
-            if (codes.length === 0) {
-                showStatus('Список уже пуст', 'error');
-                return;
-            }
-            
-            if (confirm(`Удалить все ${codes.length} кодов?`)) {
-                codes = [];
-                updateResults();
-                showStatus('Список очищен');
-            }
-        }
-
-        function beep() {
-            // Простой звуковой сигнал
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                gainNode.gain.value = 0.1;
-                
-                oscillator.start();
-                setTimeout(() => {
-                    oscillator.stop();
-                }, 100);
-            } catch (e) {
-                // Игнорируем ошибки аудио
-            }
-        }
-
-        // Автоматически запускаем сканер при загрузке страницы
-        window.addEventListener('load', function() {
-            setTimeout(startScanner, 1000);
-        });
-
-        // Останавливаем сканер при закрытии страницы
-        window.addEventListener('beforeunload', stopScanner);
+        // Инициализация сканера
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
     </script>
 </body>
 </html>
