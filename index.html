@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер кодов</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -83,6 +84,10 @@
             background: #28a745;
             color: white;
         }
+        .file-btn {
+            background: #17a2b8;
+            color: white;
+        }
         .toast {
             position: fixed;
             top: 10px;
@@ -94,6 +99,36 @@
             font-size: 0.8rem;
             display: none;
             z-index: 1000;
+        }
+        .file-input-container {
+            display: none;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .file-input-label {
+            display: inline-block;
+            padding: 10px 15px;
+            background: #17a2b8;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        #fileInput {
+            display: none;
+        }
+        .progress {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            margin: 5px 0;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #007bff;
+            width: 0%;
+            transition: width 0.3s;
         }
     </style>
 </head>
@@ -109,6 +144,16 @@
             </label>
         </div>
         
+        <div class="file-input-container" id="fileInputContainer">
+            <label class="file-input-label">
+                📁 Выбрать файлы (изображения/PDF)
+                <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.pdf,.webp" multiple>
+            </label>
+            <div class="progress" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+        
         <div id="reader">
             <div>Камера не активирована</div>
         </div>
@@ -117,6 +162,7 @@
         
         <div class="buttons">
             <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
+            <button class="file-btn" onclick="toggleFileInput()">📁 Сканировать из файлов</button>
             <button class="share-btn" onclick="shareCodes()">📤 Поделиться</button>
             <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
             <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
@@ -129,15 +175,18 @@
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
-        let fullCodeMode = false; // По умолчанию выключено
+        let fullCodeMode = false;
         const GS = String.fromCharCode(29);
+        
+        // Инициализация PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
         function loadSettings() {
             const saved = localStorage.getItem('fullCodeMode');
             if (saved !== null) {
                 fullCodeMode = saved === 'true';
             } else {
-                fullCodeMode = false; // По умолчанию false
+                fullCodeMode = false;
             }
             document.getElementById('fullCodeMode').checked = fullCodeMode;
         }
@@ -225,6 +274,119 @@
                     button.classList.remove('scanning');
                 });
             }
+        }
+
+        function toggleFileInput() {
+            const fileInputContainer = document.getElementById('fileInputContainer');
+            if (fileInputContainer.style.display === 'block') {
+                fileInputContainer.style.display = 'none';
+            } else {
+                fileInputContainer.style.display = 'block';
+            }
+        }
+
+        // Обработка выбора файлов
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length === 0) return;
+            
+            processFiles(files);
+        });
+
+        async function processFiles(files) {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            let processedFiles = 0;
+            let foundCodes = 0;
+
+            progressContainer.style.display = 'block';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                try {
+                    if (file.type === 'application/pdf') {
+                        foundCodes += await processPDF(file);
+                    } else {
+                        foundCodes += await processImage(file);
+                    }
+                } catch (error) {
+                    console.error('Ошибка обработки файла:', file.name, error);
+                }
+                
+                processedFiles++;
+                const progress = (processedFiles / files.length) * 100;
+                progressBar.style.width = progress + '%';
+            }
+            
+            // Задержка перед скрытием прогресс-бара
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 1000);
+            
+            updateResults();
+            showToast(`Обработано файлов: ${processedFiles}, найдено кодов: ${foundCodes}`);
+            document.getElementById('fileInput').value = '';
+        }
+
+        async function processPDF(file) {
+            let foundInPDF = 0;
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 2.0 });
+                
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+                
+                const imageData = canvas.toDataURL('image/png');
+                foundInPDF += await scanImageData(imageData);
+            }
+            
+            return foundInPDF;
+        }
+
+        async function processImage(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const found = await scanImageData(e.target.result);
+                    resolve(found);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function scanImageData(imageData) {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            
+            let found = 0;
+            try {
+                const decodedText = await html5QrCode.scanFile(imageData, false);
+                if (decodedText) {
+                    let serializedCode = fullCodeMode ? decodedText : decodedText.split(GS)[1];
+                    
+                    if (serializedCode && !codes.includes(serializedCode)) {
+                        codes.push(serializedCode);
+                        found = 1;
+                    }
+                }
+            } catch (error) {
+                // Код не найден в этом изображении - это нормально
+            }
+            return found;
         }
 
         function shareCodes() {
