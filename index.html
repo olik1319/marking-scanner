@@ -105,7 +105,7 @@
         
         <div class="settings">
             <label>
-                <input type="checkbox" id="fullCodeMode"> Полный код (все символы GS1)
+                <input type="checkbox" id="fullCodeMode" checked="false"> Полный код (все символы GS1)
             </label>
         </div>
         
@@ -134,7 +134,7 @@
 
         function loadSettings() {
             const saved = localStorage.getItem('fullCodeMode');
-            if (saved) {
+            if (saved !== null) {
                 fullCodeMode = saved === 'true';
             } else {
                 fullCodeMode = false; // По умолчанию false
@@ -269,7 +269,10 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadSettings);
+        // Загружаем настройки при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
     </script>
 </body>
 </html>
