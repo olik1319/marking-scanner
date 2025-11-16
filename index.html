@@ -37,7 +37,7 @@
         }
         #reader {
             flex: 1;
-            min-height: 40vh;
+            min-height: 35vh;
             border: 2px dashed #ccc;
             border-radius: 8px;
             margin: 5px 0;
@@ -79,6 +79,10 @@
             background: #6c757d;
             color: white;
         }
+        .share-btn {
+            background: #28a745;
+            color: white;
+        }
         .toast {
             position: fixed;
             top: 10px;
@@ -113,6 +117,7 @@
         
         <div class="buttons">
             <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
+            <button class="share-btn" onclick="shareCodes()">📤 Поделиться</button>
             <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
             <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
         </div>
@@ -220,12 +225,29 @@
             }
         }
 
-        function exportCSV() {
+        function shareCodes() {
             if (codes.length === 0) {
-                showToast('Нет кодов', true);
+                showToast('Нет кодов для отправки', true);
                 return;
             }
             
+            const csv = codes.join('\n');
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
+            const file = new File([blob], `codes_${codes.length}.csv`, { type: 'text/csv' });
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: `Отсканированные коды (${codes.length})`,
+                    files: [file]
+                }).catch(() => {
+                    exportCSV();
+                });
+            } else {
+                exportCSV();
+            }
+        }
+
+        function exportCSV() {
             const csv = codes.join('\n');
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
