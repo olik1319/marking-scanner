@@ -129,15 +129,17 @@
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
-        let fullCodeMode = false;
+        let fullCodeMode = false; // По умолчанию выключено
         const GS = String.fromCharCode(29);
 
         function loadSettings() {
             const saved = localStorage.getItem('fullCodeMode');
             if (saved) {
                 fullCodeMode = saved === 'true';
-                document.getElementById('fullCodeMode').checked = fullCodeMode;
+            } else {
+                fullCodeMode = false; // По умолчанию false
             }
+            document.getElementById('fullCodeMode').checked = fullCodeMode;
         }
 
         function showToast(message, isError = false) {
