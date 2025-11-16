@@ -101,6 +101,11 @@
             display: none;
             z-index: 1000;
         }
+        .sound-toggle {
+            text-align: center;
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -112,6 +117,12 @@
         <div class="settings">
             <label>
                 <input type="checkbox" id="fullCodeMode" onchange="saveSettings()"> Полный код (все символы GS1)
+            </label>
+        </div>
+
+        <div class="sound-toggle">
+            <label>
+                <input type="checkbox" id="soundEnabled" checked onchange="saveSettings()"> 🔊 Звук при сканировании
             </label>
         </div>
         
@@ -142,6 +153,11 @@
     <canvas id="pdfCanvas" style="display: none;"></canvas>
     <div id="toast" class="toast"></div>
 
+    <!-- Аудио элементы для звуков -->
+    <audio id="scanSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" type="audio/wav">
+    </audio>
+
     <script type="module">
         // Импорт PDF.js (требуется type="module")
         import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs';
@@ -158,14 +174,60 @@
         // --- Настройки и UI ---
 
         window.loadSettings = function() {
-            const saved = localStorage.getItem('fullCodeMode');
-            const fullCodeMode = saved === 'true';
+            const savedFullCode = localStorage.getItem('fullCodeMode');
+            const fullCodeMode = savedFullCode === 'true';
             document.getElementById('fullCodeMode').checked = fullCodeMode;
+
+            const savedSound = localStorage.getItem('soundEnabled');
+            const soundEnabled = savedSound === null ? true : savedSound === 'true';
+            document.getElementById('soundEnabled').checked = soundEnabled;
         }
 
         window.saveSettings = function() {
             const fullCodeMode = document.getElementById('fullCodeMode').checked;
             localStorage.setItem('fullCodeMode', fullCodeMode);
+
+            const soundEnabled = document.getElementById('soundEnabled').checked;
+            localStorage.setItem('soundEnabled', soundEnabled);
+        }
+
+        // Функция воспроизведения звука сканирования
+        window.playScanSound = function() {
+            const soundEnabled = document.getElementById('soundEnabled').checked;
+            if (!soundEnabled) return;
+
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Настройки звука сканирования (короткий бип)
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+                
+            } catch (error) {
+                console.log('Ошибка воспроизведения звука:', error);
+                // Резервный вариант - использовать HTML5 Audio
+                try {
+                    const scanSound = document.getElementById('scanSound');
+                    if (scanSound) {
+                        scanSound.currentTime = 0;
+                        scanSound.play().catch(e => console.log('Audio play failed:', e));
+                    }
+                } catch (e) {
+                    console.log('Резервный звук также не сработал');
+                }
+            }
         }
 
         window.showToast = function(message, isError = false) {
@@ -204,6 +266,9 @@
                 showToast("Уже отсканирован", true);
                 return;
             }
+            
+            // ВОСПРОИЗВОДИМ ЗВУК ПРИ УСПЕШНОМ СКАНИРОВАНИИ
+            playScanSound();
             
             codes.push(serializedCode);
             updateResults();
@@ -354,6 +419,9 @@
                             let serializedCode = currentFullCodeMode ? decodedText : decodedText.split(GS)[1];
 
                             if (serializedCode && !codes.includes(serializedCode)) {
+                                // ВОСПРОИЗВОДИМ ЗВУК ДЛЯ PDF
+                                playScanSound();
+                                
                                 codes.push(serializedCode);
                                 updateResults();
                                 codesFound++;
