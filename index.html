@@ -5,723 +5,169 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер кодов</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
-    
-    <!-- Настройки для мобильного приложения -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#007bff">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icon.png">
-    
     <style>
-        :root {
-            --primary-color: #007bff;
-            --secondary-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --info-color: #17a2b8;
-            --background-light: #f8f9fa;
-            --background-dark: #e9ecef;
-            --text-color: #343a40;
-            --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        }
-
-        body {
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--background-light);
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #f0f2f5; 
+            height: 100vh;
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px 15px;
+            flex-direction: column;
         }
-        
         .container {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            max-width: 800px;
-            width: 100%;
-            position: relative;
-        }
-        
-        h1 {
-            text-align: center;
-            color: var(--text-color);
-            margin-bottom: 25px;
-            font-size: 1.8rem;
-            border-bottom: 2px solid var(--background-dark);
-            padding-bottom: 10px;
-        }
-        
-        #reader {
-            width: 100%;
-            min-height: 400px;
-            border: 3px dashed var(--background-dark);
-            border-radius: 10px;
-            margin: 20px 0;
-            overflow: hidden;
-            background-color: #f1f1f1;
+            flex: 1;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #6c757d;
-            font-size: 1.1rem;
-            position: relative;
+            flex-direction: column;
+            max-width: 100%;
+            padding: 10px;
         }
-
-        .placeholder {
-            padding: 50px;
+        .header {
             text-align: center;
+            margin-bottom: 10px;
+            padding: 10px;
         }
-
+        .header h1 {
+            font-size: 1.4rem;
+            color: #333;
+        }
+        .settings {
+            text-align: center;
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        #reader {
+            flex: 1;
+            min-height: 40vh;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f9f9f9;
+        }
         #results {
             text-align: center;
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-color);
-            margin: 20px 0;
-            padding: 15px;
-            background: #e6f7ff;
-            border-radius: 8px;
-            border-left: 5px solid var(--primary-color);
-        }
-        
-        #info-message {
-            text-align: center;
-            font-weight: bold;
-            margin-top: -10px;
-            margin-bottom: 10px;
-            min-height: 20px;
-            word-break: break-all;
-            font-size: 1.1rem;
-        }
-        
-        .status-ok { color: var(--secondary-color); }
-        .status-error { color: var(--danger-color); }
-        .status-checking { color: var(--primary-color); }
-
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        #scanButton {
-            padding: 30px 20px;
-            border: none;
-            border-radius: 15px;
-            font-size: 1.8rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
-            color: white;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-            min-height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(45deg, var(--primary-color), #0056b3);
-            margin-bottom: 10px;
-        }
-        
-        #exportButton, #shareButton, #clearButton {
-            padding: 22px 20px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.4rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
-            color: white;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            min-height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        button:hover {
-            transform: translateY(-3px);
-        }
-        
-        #scanButton.start {
-            background: linear-gradient(45deg, var(--primary-color), #0056b3);
-        }
-
-        #scanButton.scanning {
-            background: linear-gradient(45deg, var(--warning-color), #e0a800);
-            cursor: default;
-        }
-        
-        #exportButton {
-            background: linear-gradient(45deg, var(--secondary-color), #1e7e34);
-        }
-        
-        #shareButton {
-            background: linear-gradient(45deg, var(--info-color), #138496);
-        }
-        
-        #clearButton {
-            background: linear-gradient(45deg, var(--danger-color), #c82333);
-        }
-        
-        /* Стили для кнопки настроек */
-        .settings-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: var(--background-dark);
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-        
-        .settings-button:hover {
-            background: var(--primary-color);
-            color: white;
-            transform: rotate(90deg);
-        }
-        
-        /* Модальное окно настроек */
-        .settings-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .settings-modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-        
-        .settings-title {
-            text-align: center;
-            margin-bottom: 25px;
-            font-size: 1.5rem;
-            color: var(--text-color);
-        }
-        
-        .setting-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 15px 0;
-            border-bottom: 1px solid var(--background-dark);
-        }
-        
-        .setting-label {
-            font-size: 1.1rem;
-            color: var(--text-color);
-        }
-        
-        .setting-description {
+            margin: 8px 0;
+            padding: 8px;
+            background: #e7f3ff;
+            border-radius: 5px;
             font-size: 0.9rem;
-            color: #6c757d;
-            margin-top: 5px;
         }
-        
-        .checkbox-container {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-        
-        .checkbox-container input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .checkbox-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-        
-        .checkbox-slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        
-        input:checked + .checkbox-slider {
-            background-color: var(--primary-color);
-        }
-        
-        input:checked + .checkbox-slider:before {
-            transform: translateX(26px);
-        }
-        
-        .share-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .share-modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            max-width: 450px;
-            width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-        
-        .share-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 25px 0;
-        }
-        
-        .share-option {
+        .buttons {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 20px 15px;
-            border: 2px solid var(--background-dark);
-            border-radius: 12px;
+            gap: 5px;
+        }
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            background: white;
         }
-        
-        .share-option:hover {
-            border-color: var(--primary-color);
-            background: var(--background-light);
-            transform: translateY(-3px);
+        #scanButton {
+            background: #007bff;
+            color: white;
+            font-weight: bold;
         }
-        
-        .share-icon {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+        #scanButton.scanning {
+            background: #ffc107;
+            color: #000;
         }
-        
+        .secondary-btn {
+            background: #6c757d;
+            color: white;
+        }
         .toast {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--secondary-color);
+            top: 10px;
+            right: 10px;
+            background: #28a745;
             color: white;
-            padding: 20px 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 1001;
-            font-size: 1.2rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            max-width: 350px;
-        }
-
-        .toast.show {
-            transform: translateX(0);
-        }
-
-        .toast.error {
-            background: var(--danger-color);
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px 15px;
-            }
-            
-            #reader {
-                min-height: 350px;
-            }
-            
-            #scanButton {
-                padding: 25px 18px;
-                font-size: 1.6rem;
-                min-height: 90px;
-            }
-            
-            #exportButton, #shareButton, #clearButton {
-                padding: 20px 18px;
-                font-size: 1.3rem;
-                min-height: 75px;
-            }
-
-            .share-options {
-                grid-template-columns: 1fr;
-            }
-            
-            .settings-button {
-                width: 45px;
-                height: 45px;
-                font-size: 1.3rem;
-            }
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            display: none;
+            z-index: 1000;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <button class="settings-button" onclick="showSettingsModal()">⚙️</button>
+        <div class="header">
+            <h1>📦 Сканер кодов (DataMatrix GS1)</h1>
+        </div>
         
-        <h1>✨ Сканер кодов (DataMatrix GS1)</h1>
+        <div class="settings">
+            <label>
+                <input type="checkbox" id="fullCodeMode"> Полный код (все символы GS1)
+            </label>
+        </div>
         
         <div id="reader">
-            <div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>
+            <div>Камера не активирована</div>
         </div>
         
-        <div id="info-message"></div>
         <div id="results">Отсканировано: 0 кодов</div>
-
-        <div class="button-group">
-            <button id="scanButton" class="start" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
-            <button id="exportButton" onclick="exportCSV()">💾 Скачать CSV</button>
-            <button id="shareButton" onclick="showShareModal()">📤 Поделиться</button>
-            <button id="clearButton" onclick="showClearConfirmation()">🗑️ Очистить список</button>
+        
+        <div class="buttons">
+            <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
+            <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
+            <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
         </div>
     </div>
 
-    <!-- Модальное окно настроек -->
-    <div id="settingsModal" class="settings-modal">
-        <div class="settings-modal-content">
-            <h3 class="settings-title">⚙️ Настройки сканирования</h3>
-            
-            <div class="setting-item">
-                <div>
-                    <div class="setting-label">Сканировать полный код</div>
-                    <div class="setting-description">Включает все символы GS1 (групповые разделители)</div>
-                </div>
-                <label class="checkbox-container">
-                    <input type="checkbox" id="fullCodeMode">
-                    <span class="checkbox-slider"></span>
-                </label>
-            </div>
-            
-            <div style="margin-top: 25px; text-align: center;">
-                <button onclick="hideSettingsModal()" style="padding: 12px 25px; border: none; border-radius: 8px; background: var(--primary-color); color: white; cursor: pointer; font-size: 1.1rem;">Сохранить настройки</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="toast" class="toast">
-        <span class="toast-icon">✅</span>
-        <span id="toast-message">Код успешно отсканирован!</span>
-    </div>
-
-    <div id="shareModal" class="share-modal">
-        <div class="share-modal-content">
-            <h3>📤 Куда отправить файл?</h3>
-            <p>Отсканировано кодов: <strong id="codes-count">0</strong></p>
-            
-            <div class="share-options">
-                <div class="share-option" onclick="shareViaApp('telegram')">
-                    <div class="share-icon">📱</div>
-                    <div>Telegram</div>
-                </div>
-                
-                <div class="share-option" onclick="shareViaApp('whatsapp')">
-                    <div class="share-icon">💬</div>
-                    <div>WhatsApp</div>
-                </div>
-                
-                <div class="share-option" onclick="shareViaApp('email')">
-                    <div class="share-icon">📧</div>
-                    <div>Email</div>
-                </div>
-                
-                <div class="share-option" onclick="downloadForSharing()">
-                    <div class="share-icon">📥</div>
-                    <div>Скачать</div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 20px;">
-                <button onclick="hideShareModal()" style="padding: 12px 25px; border: none; border-radius: 8px; background: #e9ecef; cursor: pointer;">Отмена</button>
-            </div>
-        </div>
-    </div>
+    <div id="toast" class="toast"></div>
 
     <script>
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
-        let fullCodeMode = false; // false = КИЗ только, true = полный код
-        const readerId = "reader";
+        let fullCodeMode = false;
         const GS = String.fromCharCode(29);
 
-        // Загрузка настроек из localStorage
         function loadSettings() {
-            const savedMode = localStorage.getItem('fullCodeMode');
-            if (savedMode !== null) {
-                fullCodeMode = savedMode === 'true';
+            const saved = localStorage.getItem('fullCodeMode');
+            if (saved) {
+                fullCodeMode = saved === 'true';
                 document.getElementById('fullCodeMode').checked = fullCodeMode;
             }
         }
 
-        // Сохранение настроек в localStorage
-        function saveSettings() {
-            localStorage.setItem('fullCodeMode', fullCodeMode);
-        }
-
-        function showSettingsModal() {
-            document.getElementById('settingsModal').style.display = 'flex';
-        }
-
-        function hideSettingsModal() {
-            fullCodeMode = document.getElementById('fullCodeMode').checked;
-            saveSettings();
-            document.getElementById('settingsModal').style.display = 'none';
-            showToast(`Режим: ${fullCodeMode ? 'Полный код' : 'Только КИЗ'}`);
-        }
-
-        function showShareModal() {
-            if (codes.length === 0) {
-                showToast('Нет отсканированных кодов для отправки.', true);
-                return;
-            }
-            document.getElementById('codes-count').textContent = codes.length;
-            document.getElementById('shareModal').style.display = 'flex';
-        }
-
-        function hideShareModal() {
-            document.getElementById('shareModal').style.display = 'none';
-        }
-
         function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toast-message');
-            
-            toastMessage.textContent = message;
-            toast.className = 'toast';
-            
-            if (isError) {
-                toast.classList.add('error');
-                toast.querySelector('.toast-icon').textContent = '❌';
-            } else {
-                toast.querySelector('.toast-icon').textContent = '✅';
-            }
-            
-            toast.classList.add('show');
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        function createCSVBlob() {
-            let csv = ''; 
-            codes.forEach(codeString => {
-                csv += `${codeString}\n`; 
-            });
-            return new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-        }
-
-        function shareViaApp(app) {
-            const blob = createCSVBlob();
-            const file = new File([blob], `marking_codes_${codes.length}_items.csv`, { type: 'text/csv' });
-            
-            hideShareModal();
-            
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({
-                    title: `Отсканированные коды (${codes.length} шт)`,
-                    text: `CSV файл с ${codes.length} отсканированными кодами`,
-                    files: [file]
-                }).then(() => {
-                    showToast('Файл отправлен!');
-                }).catch(err => {
-                    fallbackShare(app, blob);
-                });
-            } else {
-                fallbackShare(app, blob);
-            }
-        }
-
-        function fallbackShare(app, blob) {
-            const url = URL.createObjectURL(blob);
-            
-            switch(app) {
-                case 'telegram':
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `marking_codes_${codes.length}_items.csv`;
-                    a.click();
-                    showToast('Файл скачан! Откройте Telegram для отправки.');
-                    break;
-                    
-                case 'whatsapp':
-                    const a2 = document.createElement('a');
-                    a2.href = url;
-                    a2.download = `marking_codes_${codes.length}_items.csv`;
-                    a2.click();
-                    showToast('Файл скачан! Откройте WhatsApp для отправки.');
-                    break;
-                    
-                case 'email':
-                    const subject = `Отсканированные коды (${codes.length} шт)`;
-                    const body = `Во вложении CSV файл с ${codes.length} отсканированными кодами.`;
-                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    window.location.href = mailtoLink;
-                    showToast('Открывается почтовый клиент...');
-                    break;
-            }
-            
-            setTimeout(() => URL.revokeObjectURL(url), 30000);
-        }
-
-        function downloadForSharing() {
-            exportCSV();
-            hideShareModal();
-        }
-
-        function showClearConfirmation() {
-            if (codes.length === 0) {
-                showToast('Список кодов уже пуст.', true);
-                return;
-            }
-            if (confirm(`Очистить список из ${codes.length} кодов?`)) {
-                clearCodes();
-            }
-        }
-
-        function clearCodes() {
-            const count = codes.length;
-            codes = [];
-            updateResults();
-            showToast(`Список очищен. Удалено ${count} кодов.`);
+            toast.textContent = message;
+            toast.style.background = isError ? '#dc3545' : '#28a745';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2000);
         }
 
         function updateResults() {
-            document.getElementById('results').innerHTML = 'Отсканировано: ' + codes.length + ' кодов';
-        }
-
-        function displayMessage(text, className = 'status-ok') {
-            const msgElement = document.getElementById('info-message');
-            msgElement.textContent = text;
-            msgElement.className = className;
-        }
-
-        function formatGs1CodeForEdo(decodedText) {
-            const firstGSIndex = decodedText.indexOf(GS);
-            if (firstGSIndex === -1) return null;
-
-            const secondGSIndex = decodedText.indexOf(GS, firstGSIndex + 1);
-            let result = decodedText;
-
-            if (secondGSIndex !== -1) {
-                result = decodedText.substring(0, secondGSIndex);
-            }
-            
-            if (result.startsWith(GS)) {
-                result = result.substring(1);
-            }
-            
-            return result;
+            document.getElementById('results').textContent = 'Отсканировано: ' + codes.length + ' кодов';
         }
 
         function onScanSuccess(decodedText, result) {
             if (result.result.format.formatName !== 'DATA_MATRIX') {
-                showToast(`Ошибка: Требуется DataMatrix`, true);
+                showToast('Требуется DataMatrix', true);
                 return;
             }
 
-            if (!decodedText.startsWith(GS)) {
-                showToast("Ошибка: Код не соответствует формату GS1", true);
-                return;
-            }
-
-            let serializedCode;
+            let serializedCode = fullCodeMode ? decodedText : decodedText.split(GS)[1];
             
-            if (fullCodeMode) {
-                // Режим полного кода - сохраняем как есть
-                serializedCode = decodedText;
-            } else {
-                // Режим только КИЗ - извлекаем первую часть до второго GS
-                serializedCode = formatGs1CodeForEdo(decodedText);
-            }
-
-            if (!serializedCode || serializedCode.length < 25) {
-                showToast("Ошибка: Не удалось обработать код", true);
+            if (!serializedCode) {
+                showToast("Ошибка кода", true);
                 return;
             }
             
             if (codes.includes(serializedCode)) {
-                showToast("Этот код уже был отсканирован ранее", true);
+                showToast("Уже отсканирован", true);
                 return;
             }
             
             codes.push(serializedCode);
             updateResults();
-            
-            const modeText = fullCodeMode ? 'полный код' : 'КИЗ';
-            showToast(`✅ ${modeText} отсканирован! Всего: ${codes.length}`);
-            
-            // Показываем информацию о коде
-            let displayText = serializedCode;
-            if (fullCodeMode && serializedCode.length > 50) {
-                displayText = serializedCode.substring(0, 50) + '...';
-            }
-            displayMessage(`Последний код (${modeText}): ${displayText}`, 'status-ok');
-        }
-
-        function onScanFailure(error) {}
-
-        function exportCSV() {
-            if (codes.length === 0) {
-                showToast('Нет отсканированных кодов для экспорта.', true);
-                return;
-            }
-
-            const blob = createCSVBlob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `marking_codes_${codes.length}_items.csv`;
-            a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            showToast(`CSV файл с ${codes.length} кодами скачан`);
+            showToast(`✅ +1 (всего: ${codes.length})`);
         }
 
         function toggleScan() {
@@ -734,83 +180,72 @@
 
         function startScan() {
             const button = document.getElementById('scanButton');
+            
+            fullCodeMode = document.getElementById('fullCodeMode').checked;
+            localStorage.setItem('fullCodeMode', fullCodeMode);
 
-            if (isScanning) return;
-            
-            const modeText = fullCodeMode ? 'полный код' : 'только КИЗ';
-            displayMessage(`Режим: ${modeText}. Наведите камеру на код DataMatrix...`, 'status-checking');
-            
-            button.disabled = false;
-            button.textContent = '... СКАНИРОВАНИЕ АКТИВНО ...';
-            button.classList.remove('start');
+            button.textContent = '⏹️ ОСТАНОВИТЬ СКАНИРОВАНИЕ';
             button.classList.add('scanning');
 
             if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode(readerId);
+                html5QrCode = new Html5Qrcode("reader");
             }
 
             html5QrCode.start(
                 { facingMode: "environment" }, 
                 { 
                     fps: 10, 
-                    qrbox: { width: 350, height: 350 },
+                    qrbox: { width: 200, height: 200 },
                     supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX]
                 }, 
                 onScanSuccess, 
-                onScanFailure
+                () => {}
             ).then(() => {
                 isScanning = true;
-                showToast(`Сканирование начато! Режим: ${modeText}`);
             }).catch(err => {
-                showToast("Ошибка запуска камеры. Проверьте разрешение.", true);
+                showToast("Ошибка камеры", true);
                 stopScan();
-                button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
-                button.classList.remove('scanning');
-                button.classList.add('start');
             });
         }
 
         function stopScan() {
             const button = document.getElementById('scanButton');
-            const readerElement = document.getElementById(readerId);
-
+            
             if (html5QrCode && isScanning) {
                 html5QrCode.stop().then(() => {
                     isScanning = false;
-                    button.disabled = false;
                     button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
                     button.classList.remove('scanning');
-                    button.classList.add('start');
-                    
-                    readerElement.innerHTML = '<div class="placeholder">Нажмите "Начать сканирование" для активации камеры.</div>';
-                    displayMessage('Сканирование остановлено', 'status-ok');
-                    showToast('Сканирование остановлено');
                 });
             }
         }
 
-        // Обработчики событий для модальных окон
-        document.getElementById('settingsModal').addEventListener('click', function(e) {
-            if (e.target === this) hideSettingsModal();
-        });
-
-        document.getElementById('shareModal').addEventListener('click', function(e) {
-            if (e.target === this) hideShareModal();
-        });
-
-        // Загрузка настроек при запуске
-        document.addEventListener('DOMContentLoaded', function() {
-            loadSettings();
-        });
-
-        // Автоматическая установка PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(() => console.log('PWA готов к установке'))
-                    .catch(() => console.log('PWA не поддерживается'));
-            });
+        function exportCSV() {
+            if (codes.length === 0) {
+                showToast('Нет кодов', true);
+                return;
+            }
+            
+            const csv = codes.join('\n');
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `codes_${codes.length}.csv`;
+            a.click();
+            showToast(`Скачан CSV (${codes.length})`);
         }
+
+        function clearCodes() {
+            if (codes.length === 0) return;
+            if (confirm(`Очистить ${codes.length} кодов?`)) {
+                codes = [];
+                updateResults();
+                showToast('Очищено');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadSettings);
     </script>
 </body>
 </html>
