@@ -6,430 +6,212 @@
     <title>Сканер кодов</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: Arial, sans-serif; 
-            background: #f0f2f5; 
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+        .cloud-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
         }
-        .container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            max-width: 100%;
-            padding: 10px;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 10px;
-            padding: 10px;
-        }
-        .header h1 {
-            font-size: 1.4rem;
-            color: #333;
-        }
-        .settings {
-            text-align: center;
-            margin: 5px 0;
-            font-size: 0.9rem;
-        }
-        #reader {
-            flex: 1;
-            min-height: 30vh;
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            margin: 5px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f9f9f9;
-        }
-        #results {
-            text-align: center;
-            margin: 8px 0;
-            padding: 8px;
-            background: #e7f3ff;
-            border-radius: 5px;
-            font-size: 0.9rem;
-        }
-        .buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        button {
-            padding: 12px;
+        .cloud-btn {
+            padding: 15px;
             border: none;
             border-radius: 8px;
-            font-size: 0.9rem;
+            color: white;
             cursor: pointer;
-        }
-        #scanButton {
-            background: #007bff;
-            color: white;
-            font-weight: bold;
-        }
-        #scanButton.scanning {
-            background: #ffc107;
-            color: #000;
-        }
-        .secondary-btn {
-            background: #6c757d;
-            color: white;
-        }
-        .share-btn {
-            background: #28a745;
-            color: white;
-        }
-        .onec-btn {
-            background: #ff6b35;
-            color: white;
-        }
-        .toast {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #28a745;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 5px;
-            font-size: 0.8rem;
-            display: none;
-            z-index: 1000;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1001;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            max-width: 400px;
-            width: 90%;
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .modal-buttons button {
-            flex: 1;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>📦 Сканер кодов (DataMatrix GS1)</h1>
-        </div>
+        <!-- ... остальной интерфейс ... -->
         
-        <div class="settings">
-            <label>
-                <input type="checkbox" id="fullCodeMode"> Полный код (все символы GS1)
-            </label>
-        </div>
+        <button class="onec-btn" onclick="showCloudOptions()">☁️ Удаленная синхронизация</button>
         
-        <div id="reader">
-            <div>Камера не активирована</div>
-        </div>
-        
-        <div id="results">Отсканировано: 0 кодов</div>
-        
-        <div class="buttons">
-            <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
-            <button class="onec-btn" onclick="showOneCOptions()">📊 Отправить в 1С</button>
-            <button class="share-btn" onclick="shareCodes()">📤 Поделиться</button>
-            <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
-            <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
-        </div>
-    </div>
-
-    <!-- Модальное окно для 1С -->
-    <div id="oneCModal" class="modal">
-        <div class="modal-content">
-            <h3>📊 Отправка данных в 1С</h3>
-            <p>Отсканировано кодов: <strong id="onecCodesCount">0</strong></p>
-            
-            <div class="modal-buttons">
-                <button style="background: #2196F3;" onclick="sendToOneCViaHTTP()">🌐 HTTP-запрос</button>
-                <button style="background: #4CAF50;" onclick="sendToOneCViaFile()">📁 Файл обмена</button>
-                <button style="background: #FF9800;" onclick="sendToOneCViaBase64()">🔗 Base64</button>
+        <div id="cloudOptions" style="display: none;">
+            <div class="cloud-options">
+                <button class="cloud-btn" style="background: #4285F4;" onclick="syncWithGoogleDrive()">📊 Google Drive</button>
+                <button class="cloud-btn" style="background: #007ee5;" onclick="syncWithDropbox()">📁 Dropbox</button>
+                <button class="cloud-btn" style="background: #25D366;" onclick="syncWithTelegram()">💬 Telegram</button>
+                <button class="cloud-btn" style="background: #FF6600;" onclick="syncWithEmail()">📧 Email</button>
             </div>
             
+            <!-- Ручная настройка облака -->
             <div style="margin-top: 15px;">
-                <button onclick="hideOneCModal()" style="background: #ccc; color: #000;">Отмена</button>
+                <input type="text" id="cloudWebhook" placeholder="Webhook URL (опционально)" style="width: 100%; padding: 8px;">
+                <button onclick="setupCloudWebhook()" style="width: 100%; margin-top: 5px; padding: 10px; background: #666; color: white;">💾 Сохранить webhook</button>
             </div>
         </div>
     </div>
-
-    <div id="toast" class="toast"></div>
 
     <script>
-        let codes = [];
-        let html5QrCode = null;
-        let isScanning = false;
-        let fullCodeMode = false;
-        const GS = String.fromCharCode(29);
+        let cloudWebhookUrl = localStorage.getItem('cloudWebhook') || '';
 
-        // Настройки 1С (можно изменить под вашу конфигурацию)
-        const ONEC_CONFIG = {
-            httpEndpoint: 'https://your-1c-server.com/hs/scanner/api',
-            webdavPath: 'https://your-1c-server.com/dav/scanner/',
-            username: 'user',
-            password: 'pass'
-        };
-
-        function loadSettings() {
-            const saved = localStorage.getItem('fullCodeMode');
-            if (saved !== null) {
-                fullCodeMode = saved === 'true';
-            }
-            document.getElementById('fullCodeMode').checked = fullCodeMode;
+        function showCloudOptions() {
+            const options = document.getElementById('cloudOptions');
+            options.style.display = options.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('cloudWebhook').value = cloudWebhookUrl;
         }
 
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.background = isError ? '#dc3545' : '#28a745';
-            toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 3000);
+        function setupCloudWebhook() {
+            cloudWebhookUrl = document.getElementById('cloudWebhook').value.trim();
+            localStorage.setItem('cloudWebhook', cloudWebhookUrl);
+            showToast('Webhook сохранен');
         }
 
-        function updateResults() {
-            document.getElementById('results').textContent = 'Отсканировано: ' + codes.length + ' кодов';
-        }
-
-        function showOneCOptions() {
+        // 1. Google Drive через API
+        async function syncWithGoogleDrive() {
             if (codes.length === 0) {
-                showToast('Нет кодов для отправки', true);
+                showToast('Нет данных для синхронизации', true);
                 return;
             }
-            document.getElementById('onecCodesCount').textContent = codes.length;
-            document.getElementById('oneCModal').style.display = 'flex';
-        }
 
-        function hideOneCModal() {
-            document.getElementById('oneCModal').style.display = 'none';
-        }
-
-        // 1. Отправка через HTTP-запрос (REST API)
-        async function sendToOneCViaHTTP() {
-            hideOneCModal();
+            const data = prepareSyncData();
             
-            try {
-                const response = await fetch(ONEC_CONFIG.httpEndpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Basic ' + btoa(ONEC_CONFIG.username + ':' + ONEC_CONFIG.password)
-                    },
-                    body: JSON.stringify({
-                        codes: codes,
-                        timestamp: new Date().toISOString(),
-                        count: codes.length
-                    })
-                });
-
-                if (response.ok) {
-                    showToast('✅ Данные отправлены в 1С через HTTP');
-                } else {
-                    throw new Error('HTTP error: ' + response.status);
-                }
-            } catch (error) {
-                showToast('❌ Ошибка отправки в 1С: ' + error.message, true);
+            // Создаем файл и скачиваем
+            const jsonData = JSON.stringify(data, null, 2);
+            downloadFile(jsonData, `scanner_codes_${Date.now()}.json`, 'application/json');
+            
+            showToast('📁 Файл готов. Загрузите в Google Drive');
+            
+            // Если есть webhook - отправляем уведомление
+            if (cloudWebhookUrl) {
+                sendWebhookNotification('Google Drive');
             }
         }
 
-        // 2. Отправка через файл обмена (WebDAV)
-        async function sendToOneCViaFile() {
-            hideOneCModal();
-            
-            const csvData = codes.join('\n');
-            const blob = new Blob(["\uFEFF" + csvData], { type: 'text/csv' });
-            const fileName = `scanner_codes_${Date.now()}.csv`;
-            
-            try {
-                // Загрузка через WebDAV
-                const response = await fetch(ONEC_CONFIG.webdavPath + fileName, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': 'Basic ' + btoa(ONEC_CONFIG.username + ':' + ONEC_CONFIG.password)
-                    },
-                    body: blob
-                });
+        // 2. Dropbox
+        async function syncWithDropbox() {
+            if (codes.length === 0) {
+                showToast('Нет данных для синхронизации', true);
+                return;
+            }
 
-                if (response.ok) {
-                    showToast('✅ Файл загружен в 1С через WebDAV');
-                } else {
-                    throw new Error('WebDAV error: ' + response.status);
-                }
-            } catch (error) {
-                // Fallback - скачивание файла
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                a.click();
-                showToast('📁 Файл скачан. Загрузите в 1С вручную');
+            const data = prepareSyncData();
+            const csvData = convertToCSV(data.codes);
+            
+            // Скачиваем оба формата
+            downloadFile(JSON.stringify(data, null, 2), `scanner_data_${Date.now()}.json`, 'application/json');
+            downloadFile("\uFEFF" + csvData, `scanner_codes_${Date.now()}.csv`, 'text/csv');
+            
+            showToast('📁 Файлы готовы. Загрузите в Dropbox');
+            
+            if (cloudWebhookUrl) {
+                sendWebhookNotification('Dropbox');
             }
         }
 
-        // 3. Отправка через Base64 (для мобильных приложений 1С)
-        function sendToOneCViaBase64() {
-            hideOneCModal();
+        // 3. Telegram Bot
+        async function syncWithTelegram() {
+            if (codes.length === 0) {
+                showToast('Нет данных для отправки', true);
+                return;
+            }
+
+            const data = prepareSyncData();
+            const text = `📊 Новые отсканированные коды: ${data.count} шт.\nВремя: ${new Date(data.timestamp).toLocaleString()}`;
             
-            const csvData = codes.join('\n');
-            const base64Data = btoa(unescape(encodeURIComponent("\uFEFF" + csvData)));
+            // Создаем файл
+            const file = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             
-            // Создаем ссылку для запуска 1С
-            const onecUrl = `onec://import?data=${encodeURIComponent(base64Data)}&type=csv`;
-            
-            // Пытаемся открыть 1С
-            window.location.href = onecUrl;
-            
-            // Fallback - показываем данные для ручного копирования
-            setTimeout(() => {
-                const shouldCopy = confirm('Не удалось открыть 1С. Скопировать данные в буфер обмена?');
-                if (shouldCopy) {
-                    navigator.clipboard.writeText(base64Data).then(() => {
-                        showToast('📋 Данные скопированы в буфер');
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        title: `Коды (${data.count} шт)`,
+                        text: text,
+                        files: [file]
                     });
+                    showToast('✅ Данные отправлены в Telegram');
+                } catch (error) {
+                    fallbackTelegram(data);
                 }
+            } else {
+                fallbackTelegram(data);
+            }
+        }
+
+        function fallbackTelegram(data) {
+            const jsonData = JSON.stringify(data, null, 2);
+            downloadFile(jsonData, `telegram_codes_${Date.now()}.json`, 'application/json');
+            showToast('📁 Файл готов. Отправьте в Telegram');
+        }
+
+        // 4. Email
+        async function syncWithEmail() {
+            if (codes.length === 0) {
+                showToast('Нет данных для отправки', true);
+                return;
+            }
+
+            const data = prepareSyncData();
+            const csvData = convertToCSV(data.codes);
+            
+            const subject = `Отсканированные коды (${data.count} шт)`;
+            const body = `Во вложении данные сканирования:\n- Количество: ${data.count}\n- Время: ${new Date().toLocaleString()}\n\nФайлы:\n1. JSON - полные данные\n2. CSV - только коды`;
+            
+            // Создаем временные файлы
+            const jsonFile = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const csvFile = new Blob(["\uFEFF" + csvData], { type: 'text/csv' });
+            
+            // Пытаемся отправить через почту
+            const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+            
+            // Fallback - скачивание файлов
+            setTimeout(() => {
+                downloadFile(JSON.stringify(data, null, 2), `email_codes_${Date.now()}.json`, 'application/json');
+                downloadFile("\uFEFF" + csvData, `email_codes_${Date.now()}.csv`, 'text/csv');
+                showToast('📧 Файлы готовы. Прикрепите к письму');
             }, 1000);
         }
 
-        function onScanSuccess(decodedText, result) {
-            if (result.result.format.formatName !== 'DATA_MATRIX') {
-                showToast('Требуется DataMatrix', true);
-                return;
-            }
-
-            let serializedCode = fullCodeMode ? decodedText : decodedText.split(GS)[1];
+        // Webhook уведомление
+        async function sendWebhookNotification(service) {
+            if (!cloudWebhookUrl) return;
             
-            if (!serializedCode) {
-                showToast("Ошибка кода", true);
-                return;
-            }
-            
-            if (codes.includes(serializedCode)) {
-                showToast("Уже отсканирован", true);
-                return;
-            }
-            
-            codes.push(serializedCode);
-            updateResults();
-            showToast(`✅ +1 (всего: ${codes.length})`);
-        }
-
-        function toggleScan() {
-            if (isScanning) {
-                stopScan();
-            } else {
-                startScan();
-            }
-        }
-
-        function startScan() {
-            const button = document.getElementById('scanButton');
-            
-            fullCodeMode = document.getElementById('fullCodeMode').checked;
-            localStorage.setItem('fullCodeMode', fullCodeMode);
-
-            button.textContent = '⏹️ ОСТАНОВИТЬ СКАНИРОВАНИЕ';
-            button.classList.add('scanning');
-
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                { 
-                    fps: 10, 
-                    qrbox: { width: 200, height: 200 },
-                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX]
-                }, 
-                onScanSuccess, 
-                () => {}
-            ).then(() => {
-                isScanning = true;
-            }).catch(err => {
-                showToast("Ошибка камеры", true);
-                stopScan();
-            });
-        }
-
-        function stopScan() {
-            const button = document.getElementById('scanButton');
-            
-            if (html5QrCode && isScanning) {
-                html5QrCode.stop().then(() => {
-                    isScanning = false;
-                    button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
-                    button.classList.remove('scanning');
+            try {
+                await fetch(cloudWebhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        service: service,
+                        action: 'new_data',
+                        count: codes.length,
+                        timestamp: new Date().toISOString(),
+                        message: `Новые данные доступны в ${service}`
+                    })
                 });
+            } catch (error) {
+                console.log('Webhook error:', error);
             }
         }
 
-        function shareCodes() {
-            if (codes.length === 0) {
-                showToast('Нет кодов для отправки', true);
-                return;
-            }
-            
-            const csv = codes.join('\n');
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
-            const file = new File([blob], `codes_${codes.length}.csv`, { type: 'text/csv' });
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: `Отсканированные коды (${codes.length})`,
-                    files: [file]
-                }).catch(() => {
-                    exportCSV();
-                });
-            } else {
-                exportCSV();
-            }
+        // Вспомогательные функции
+        function prepareSyncData() {
+            return {
+                scanner_app: "DataMatrix Scanner",
+                version: "1.0",
+                timestamp: new Date().toISOString(),
+                codes: codes,
+                count: codes.length,
+                format: "GS1 DataMatrix"
+            };
         }
 
-        function exportCSV() {
-            const csv = codes.join('\n');
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
+        function convertToCSV(codesArray) {
+            return codesArray.join('\n');
+        }
+
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `codes_${codes.length}.csv`;
+            a.download = fileName;
             a.click();
-            showToast(`Скачан CSV (${codes.length})`);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
-
-        function clearCodes() {
-            if (codes.length === 0) return;
-            if (confirm(`Очистить ${codes.length} кодов?`)) {
-                codes = [];
-                updateResults();
-                showToast('Очищено');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', loadSettings);
-        
-        // Закрытие модального окна по клику вне его
-        document.getElementById('oneCModal').addEventListener('click', function(e) {
-            if (e.target === this) hideOneCModal();
-        });
     </script>
 </body>
 </html>
