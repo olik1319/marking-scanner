@@ -4,13 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер кодов</title>
-    <!-- Основные библиотеки -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-    
-    <!-- Добавлены библиотеки PDF.js для сканирования PDF-файлов -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs" type="module"></script>
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -107,6 +101,21 @@
             text-align: center;
             margin-top: 5px;
         }
+        .progress {
+            width: 100%;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 5px 0;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #007bff;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s;
+        }
     </style>
 </head>
 <body>
@@ -128,10 +137,13 @@
         <div id="results">Отсканировано: 0 кодов</div>
         <div class="debug-info" id="debugInfo">Готов к работе</div>
         
+        <div class="progress" id="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
         <div class="buttons">
             <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
             
-            <!-- Скрытый элемент для выбора файла -->
             <input type="file" id="fileInput" 
                    accept="image/*, application/pdf" 
                    style="display: none;" 
@@ -141,22 +153,12 @@
             <button class="share-btn" onclick="shareCodes()">📤 Поделиться</button>
             <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
             <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
-            <!-- Кнопка для отладки -->
-            <button class="secondary-btn" onclick="testScanning()" style="font-size: 0.7rem;">🐛 Тест сканирования</button>
         </div>
     </div>
 
-    <!-- Скрытый Canvas для рендеринга PDF-страниц -->
-    <canvas id="pdfCanvas" style="display: none;"></canvas>
     <div id="toast" class="toast"></div>
 
-    <script type="module">
-        // Импорт PDF.js (требуется type="module")
-        import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs';
-        
-        // Установка пути к worker.mjs
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
-
+    <script>
         // Глобальные переменные
         window.codes = [];
         window.html5QrCode = null;
@@ -192,10 +194,25 @@
             document.getElementById('debugInfo').textContent = message;
         }
 
+        window.updateProgress = function(percent, message = '') {
+            const progress = document.getElementById('progress');
+            const progressBar = document.getElementById('progressBar');
+            
+            if (percent > 0) {
+                progress.style.display = 'block';
+                progressBar.style.width = percent + '%';
+            } else {
+                progress.style.display = 'none';
+            }
+            
+            if (message) {
+                updateDebugInfo(message);
+            }
+        }
+
         // --- Логика сканирования ---
 
         window.onScanSuccess = function(decodedText, result) {
-            // Читаем актуальное состояние чекбокса
             const currentFullCodeMode = document.getElementById('fullCodeMode').checked; 
 
             // Проверка формата (только для сканирования с камеры)
@@ -209,7 +226,6 @@
             if (currentFullCodeMode) {
                 serializedCode = decodedText;
             } else {
-                // Более надежное извлечение GS1 кода
                 const parts = decodedText.split(GS);
                 serializedCode = parts.length > 1 ? parts[1] : decodedText;
             }
@@ -243,7 +259,6 @@
         window.startScan = function() {
             const button = document.getElementById('scanButton');
             
-            // Сохраняем настройки при старте (на всякий случай)
             saveSettings(); 
 
             button.textContent = '⏹️ ОСТАНОВИТЬ СКАНИРОВАНИЕ';
@@ -282,7 +297,6 @@
                     button.classList.remove('scanning');
                     updateDebugInfo("Камера остановлена");
                 }).catch(() => {
-                    // Обработка случая, если камера уже была остановлена
                     isScanning = false;
                     button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
                     button.classList.remove('scanning');
@@ -303,12 +317,10 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            // Инициализируем объект, если он еще не создан
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("reader");
             }
             
-            // Очищаем поле ввода
             event.target.value = null; 
 
             if (file.type === 'application/pdf') {
@@ -326,7 +338,6 @@
             
             html5QrCode.scanFile(file, true)
                 .then(decodedText => {
-                    // СОЗДАЕМ ПРАВИЛЬНЫЙ МОК-ОБЪЕКТ ДЛЯ ФОРМАТА
                     const mockResult = { 
                         result: { 
                             format: { 
@@ -347,106 +358,170 @@
                         showToast(`Ошибка сканирования: ${err}`, true);
                         updateDebugInfo(`Ошибка: ${err}`);
                     }
-                    console.error("File scan error:", err);
                 });
         }
 
+        // НОВАЯ УЛУЧШЕННАЯ ФУНКЦИЯ СКАНИРОВАНИЯ PDF
         async function scanPdfFile(file) {
-            showToast(`Загрузка PDF (${file.name})...`, false);
-            updateDebugInfo(`Загрузка PDF: ${file.name}`);
-            
-            const fileReader = new FileReader();
-            fileReader.onload = async function() {
-                try {
-                    const pdfData = new Uint8Array(this.result);
-                    const loadingTask = pdfjsLib.getDocument({ data: pdfData });
-                    const pdf = await loadingTask.promise;
-                    
-                    const totalPages = pdf.numPages;
-                    let codesFound = 0;
-                    let duplicatesFound = 0;
+            showToast(`Загрузка PDF...`, false);
+            updateProgress(10, 'Загрузка PDF...');
 
-                    showToast(`PDF загружен. Сканирование ${totalPages} страниц...`, false);
-                    updateDebugInfo(`PDF: ${totalPages} страниц, сканирование...`);
+            try {
+                // Используем внешний сервис для конвертации PDF в изображения
+                const formData = new FormData();
+                formData.append('file', file);
 
-                    for (let i = 1; i <= totalPages; i++) {
-                        updateDebugInfo(`Сканирование страницы ${i} из ${totalPages}...`);
-                        const page = await pdf.getPage(i);
+                updateProgress(30, 'Конвертация PDF в изображения...');
+                
+                // Конвертируем PDF в изображения с помощью бесплатного API
+                const response = await fetch('https://api.pdf2image.xyz/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка конвертации PDF');
+                }
+
+                const result = await response.json();
+                
+                if (!result.images || result.images.length === 0) {
+                    throw new Error('Не удалось получить изображения из PDF');
+                }
+
+                updateProgress(50, `Обработка ${result.images.length} страниц...`);
+                
+                let codesFound = 0;
+                let totalPages = result.images.length;
+
+                // Сканируем каждое изображение
+                for (let i = 0; i < totalPages; i++) {
+                    const imageUrl = result.images[i];
+                    updateProgress(50 + (i / totalPages) * 40, `Сканирование страницы ${i + 1} из ${totalPages}...`);
+
+                    try {
+                        // Загружаем изображение
+                        const imgResponse = await fetch(imageUrl);
+                        const blob = await imgResponse.blob();
                         
-                        // УВЕЛИЧИВАЕМ КАЧЕСТВО РЕНДЕРИНГА
-                        const viewport = page.getViewport({ scale: 3.0 });
-                        const canvas = document.getElementById('pdfCanvas');
-                        const context = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-                        canvas.style.width = viewport.width + 'px';
-                        canvas.style.height = viewport.height + 'px';
-
-                        // Рендерим с лучшим качеством
-                        await page.render({
-                            canvasContext: context,
-                            viewport: viewport,
-                            intent: 'display'
-                        }).promise;
-
-                        // Даем время на рендеринг
-                        await new Promise(resolve => setTimeout(resolve, 100));
-
-                        // Получаем изображение в высоком качестве
-                        const dataUrl = canvas.toDataURL('image/png', 1.0);
-
                         // Сканируем изображение
-                        try {
-                            const decodedText = await html5QrCode.scanFile(dataUrl, true);
+                        const decodedText = await html5QrCode.scanFile(blob, true);
+                        
+                        if (decodedText) {
+                            const currentFullCodeMode = document.getElementById('fullCodeMode').checked;
+                            let serializedCode;
                             
-                            // ОБРАБАТЫВАЕМ РЕЗУЛЬТАТ ПРАВИЛЬНО
-                            if (decodedText) {
-                                const currentFullCodeMode = document.getElementById('fullCodeMode').checked;
-                                let serializedCode;
-                                
-                                if (currentFullCodeMode) {
-                                    serializedCode = decodedText;
-                                } else {
-                                    // Более надежное извлечение GS1 кода
-                                    const parts = decodedText.split(GS);
-                                    serializedCode = parts.length > 1 ? parts[1] : decodedText;
-                                }
+                            if (currentFullCodeMode) {
+                                serializedCode = decodedText;
+                            } else {
+                                const parts = decodedText.split(GS);
+                                serializedCode = parts.length > 1 ? parts[1] : decodedText;
+                            }
 
-                                if (serializedCode && serializedCode.trim() !== '') {
-                                    if (!codes.includes(serializedCode)) {
-                                        codes.push(serializedCode);
-                                        updateResults();
-                                        codesFound++;
-                                        showToast(`✅ Найден код на стр. ${i}`);
-                                        updateDebugInfo(`Стр. ${i}: найден код`);
-                                    } else {
-                                        duplicatesFound++;
-                                    }
+                            if (serializedCode && serializedCode.trim() !== '') {
+                                if (!codes.includes(serializedCode)) {
+                                    codes.push(serializedCode);
+                                    updateResults();
+                                    codesFound++;
+                                    showToast(`✅ Найден код на стр. ${i + 1}`);
                                 }
                             }
-                            
-                        } catch (scanError) {
-                            // Код не найден на этой странице - это нормально
-                            console.log(`На странице ${i} коды не найдены`);
                         }
+                    } catch (scanError) {
+                        // Пропускаем страницы без кодов
+                        console.log(`Страница ${i + 1}: коды не найдены`);
                     }
-
-                    const finalMessage = `✅ PDF сканирование завершено. Найдено: ${codesFound} новых, дубликатов: ${duplicatesFound}`;
-                    showToast(finalMessage, false);
-                    updateDebugInfo(finalMessage);
-
-                } catch (error) {
-                    const errorMessage = `Ошибка обработки PDF: ${error.message}`;
-                    showToast(errorMessage, true);
-                    updateDebugInfo(errorMessage);
-                    console.error("PDF processing error:", error);
                 }
-            };
-            fileReader.onerror = function() {
-                showToast('Ошибка чтения PDF файла', true);
-                updateDebugInfo('Ошибка чтения файла');
-            };
-            fileReader.readAsArrayBuffer(file);
+
+                updateProgress(100, `PDF сканирование завершено`);
+                setTimeout(() => updateProgress(0), 2000);
+                
+                showToast(`✅ Найдено ${codesFound} кодов в PDF`, false);
+                updateDebugInfo(`PDF: ${codesFound} кодов найдено`);
+
+            } catch (error) {
+                updateProgress(0);
+                showToast(`Ошибка: ${error.message}`, true);
+                updateDebugInfo(`Ошибка PDF: ${error.message}`);
+                
+                // Альтернативный метод - используем локальную конвертацию
+                console.log('Пробуем альтернативный метод...');
+                fallbackPdfScan(file);
+            }
+        }
+
+        // АЛЬТЕРНАТИВНЫЙ МЕТОД ДЛЯ PDF
+        async function fallbackPdfScan(file) {
+            showToast('Используем альтернативный метод...', false);
+            updateDebugInfo('Альтернативный метод PDF...');
+
+            // Создаем iframe для отображения PDF
+            const pdfUrl = URL.createObjectURL(file);
+            const iframe = document.createElement('iframe');
+            iframe.src = pdfUrl;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            // Ждем загрузки PDF
+            await new Promise(resolve => {
+                iframe.onload = resolve;
+            });
+
+            let codesFound = 0;
+
+            try {
+                // Получаем количество страниц
+                const pdfDoc = iframe.contentWindow?.document;
+                if (!pdfDoc) throw new Error('Не удалось загрузить PDF');
+
+                // Для простых PDF пытаемся найти изображения
+                const images = pdfDoc.querySelectorAll('img');
+                updateDebugInfo(`Найдено ${images.length} изображений в PDF`);
+
+                for (let i = 0; i < images.length; i++) {
+                    try {
+                        const img = images[i];
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        canvas.width = img.naturalWidth || img.width;
+                        canvas.height = img.naturalHeight || img.height;
+                        
+                        ctx.drawImage(img, 0, 0);
+                        
+                        const dataUrl = canvas.toDataURL('image/png');
+                        
+                        const decodedText = await html5QrCode.scanFile(dataUrl, true);
+                        
+                        if (decodedText) {
+                            const currentFullCodeMode = document.getElementById('fullCodeMode').checked;
+                            let serializedCode = currentFullCodeMode ? decodedText : decodedText.split(GS)[1];
+                            
+                            if (serializedCode && !codes.includes(serializedCode)) {
+                                codes.push(serializedCode);
+                                codesFound++;
+                            }
+                        }
+                    } catch (e) {
+                        // Пропускаем ошибки
+                    }
+                }
+
+                if (codesFound > 0) {
+                    updateResults();
+                    showToast(`✅ Найдено ${codesFound} кодов`, false);
+                } else {
+                    showToast('Коды не найдены в PDF', true);
+                }
+
+            } catch (error) {
+                showToast('Не удалось просканировать PDF', true);
+            } finally {
+                // Очистка
+                document.body.removeChild(iframe);
+                URL.revokeObjectURL(pdfUrl);
+                updateProgress(0);
+            }
         }
 
         // --- Утилиты ---
@@ -500,20 +575,6 @@
                 updateDebugInfo('Все коды очищены');
                 showToast('Очищено');
             }
-        }
-
-        // Функция для тестирования
-        window.testScanning = function() {
-            console.log('=== ТЕСТ СКАНИРОВАНИЯ ===');
-            console.log('PDF.js version:', pdfjsLib.version);
-            console.log('Current codes:', codes);
-            console.log('HTML5 QR Code initialized:', !!html5QrCode);
-            console.log('Is scanning:', isScanning);
-            console.log('GS separator:', GS);
-            console.log('Full code mode:', document.getElementById('fullCodeMode').checked);
-            
-            updateDebugInfo('Тест: ' + (html5QrCode ? 'Scanner OK' : 'Scanner NULL'));
-            showToast('Тест завершен - проверьте консоль');
         }
 
         // Загружаем настройки при загрузке страницы
