@@ -101,6 +101,12 @@
             display: none;
             z-index: 1000;
         }
+        .debug-info {
+            font-size: 0.7rem;
+            color: #666;
+            text-align: center;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -120,6 +126,7 @@
         </div>
         
         <div id="results">Отсканировано: 0 кодов</div>
+        <div class="debug-info" id="debugInfo">Готов к работе</div>
         
         <div class="buttons">
             <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
@@ -130,11 +137,12 @@
                    style="display: none;" 
                    onchange="scanFromFile(event)">
             <button class="secondary-btn" onclick="document.getElementById('fileInput').click()">🖼️ Сканировать из файла/PDF</button>
-            <!-- Конец добавленного элемента -->
 
             <button class="share-btn" onclick="shareCodes()">📤 Поделиться</button>
             <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
             <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
+            <!-- Кнопка для отладки -->
+            <button class="secondary-btn" onclick="testScanning()" style="font-size: 0.7rem;">🐛 Тест сканирования</button>
         </div>
     </div>
 
@@ -173,11 +181,15 @@
             toast.textContent = message;
             toast.style.background = isError ? '#dc3545' : '#28a745';
             toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 2500);
+            setTimeout(() => toast.style.display = 'none', 3000);
         }
 
         window.updateResults = function() {
             document.getElementById('results').textContent = 'Отсканировано: ' + codes.length + ' кодов';
+        }
+
+        window.updateDebugInfo = function(message) {
+            document.getElementById('debugInfo').textContent = message;
         }
 
         // --- Логика сканирования ---
@@ -187,15 +199,22 @@
             const currentFullCodeMode = document.getElementById('fullCodeMode').checked; 
 
             // Проверка формата (только для сканирования с камеры)
-            if (result && result.result.format.formatName !== 'DATA_MATRIX') {
+            if (result && result.result && result.result.format && result.result.format.formatName !== 'DATA_MATRIX') {
                 showToast('Требуется DataMatrix', true);
                 return;
             }
 
             // Логика извлечения кода
-            let serializedCode = currentFullCodeMode ? decodedText : decodedText.split(GS)[1];
+            let serializedCode;
+            if (currentFullCodeMode) {
+                serializedCode = decodedText;
+            } else {
+                // Более надежное извлечение GS1 кода
+                const parts = decodedText.split(GS);
+                serializedCode = parts.length > 1 ? parts[1] : decodedText;
+            }
             
-            if (!serializedCode) {
+            if (!serializedCode || serializedCode.trim() === '') {
                 showToast("Ошибка кода или неверный формат GS1", true);
                 return;
             }
@@ -208,6 +227,7 @@
             codes.push(serializedCode);
             updateResults();
             showToast(`✅ +1 (всего: ${codes.length})`);
+            updateDebugInfo(`Последний код: ${serializedCode.substring(0, 30)}...`);
         }
 
         // --- Управление камерой ---
@@ -244,8 +264,10 @@
                 () => {}
             ).then(() => {
                 isScanning = true;
+                updateDebugInfo("Камера активна - сканируйте DataMatrix");
             }).catch(err => {
                 showToast("Ошибка камеры: " + err, true);
+                updateDebugInfo("Ошибка камеры: " + err);
                 stopScan();
             });
         }
@@ -258,11 +280,13 @@
                     isScanning = false;
                     button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
                     button.classList.remove('scanning');
+                    updateDebugInfo("Камера остановлена");
                 }).catch(() => {
                     // Обработка случая, если камера уже была остановлена
                     isScanning = false;
                     button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
                     button.classList.remove('scanning');
+                    updateDebugInfo("Камера остановлена");
                 });
             }
         }
@@ -298,20 +322,38 @@
 
         function scanImageFile(file) {
             showToast(`Сканирование изображения: ${file.name}...`);
+            updateDebugInfo(`Сканирование изображения: ${file.name}`);
             
             html5QrCode.scanFile(file, true)
                 .then(decodedText => {
-                    const mockResult = { result: { format: { formatName: 'DATA_MATRIX' } } };
+                    // СОЗДАЕМ ПРАВИЛЬНЫЙ МОК-ОБЪЕКТ ДЛЯ ФОРМАТА
+                    const mockResult = { 
+                        result: { 
+                            format: { 
+                                formatName: 'DATA_MATRIX',
+                                format: 1
+                            } 
+                        } 
+                    };
                     onScanSuccess(decodedText, mockResult);
+                    updateDebugInfo(`Изображение отсканировано: ${decodedText.substring(0, 30)}...`);
                 })
                 .catch(err => {
-                    showToast(`Ошибка сканирования файла: Код не найден.`, true);
+                    if (err === "QR code parse error, error = No multi-formats found." || 
+                        err.includes("No MultiFormat Readers were able to detect the code")) {
+                        showToast('DataMatrix код не найден в изображении', true);
+                        updateDebugInfo('DataMatrix не найден в изображении');
+                    } else {
+                        showToast(`Ошибка сканирования: ${err}`, true);
+                        updateDebugInfo(`Ошибка: ${err}`);
+                    }
                     console.error("File scan error:", err);
                 });
         }
 
         async function scanPdfFile(file) {
             showToast(`Загрузка PDF (${file.name})...`, false);
+            updateDebugInfo(`Загрузка PDF: ${file.name}`);
             
             const fileReader = new FileReader();
             fileReader.onload = async function() {
@@ -322,54 +364,87 @@
                     
                     const totalPages = pdf.numPages;
                     let codesFound = 0;
+                    let duplicatesFound = 0;
 
                     showToast(`PDF загружен. Сканирование ${totalPages} страниц...`, false);
+                    updateDebugInfo(`PDF: ${totalPages} страниц, сканирование...`);
 
                     for (let i = 1; i <= totalPages; i++) {
-                        showToast(`Сканирование страницы ${i} из ${totalPages}...`, false);
+                        updateDebugInfo(`Сканирование страницы ${i} из ${totalPages}...`);
                         const page = await pdf.getPage(i);
                         
-                        // 1. Рендеринг страницы на Canvas
-                        const viewport = page.getViewport({ scale: 2.0 }); // Увеличиваем масштаб для лучшего качества сканирования
+                        // УВЕЛИЧИВАЕМ КАЧЕСТВО РЕНДЕРИНГА
+                        const viewport = page.getViewport({ scale: 3.0 });
                         const canvas = document.getElementById('pdfCanvas');
                         const context = canvas.getContext('2d');
                         canvas.height = viewport.height;
                         canvas.width = viewport.width;
+                        canvas.style.width = viewport.width + 'px';
+                        canvas.style.height = viewport.height + 'px';
 
-                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                        // Рендерим с лучшим качеством
+                        await page.render({
+                            canvasContext: context,
+                            viewport: viewport,
+                            intent: 'display'
+                        }).promise;
 
-                        // 2. Получение Data URL (изображения) с Canvas
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                        // Даем время на рендеринг
+                        await new Promise(resolve => setTimeout(resolve, 100));
 
-                        // 3. Сканирование изображения
+                        // Получаем изображение в высоком качестве
+                        const dataUrl = canvas.toDataURL('image/png', 1.0);
+
+                        // Сканируем изображение
                         try {
                             const decodedText = await html5QrCode.scanFile(dataUrl, true);
                             
-                            // Если код найден, обрабатываем его
-                            const mockResult = { result: { format: { formatName: 'DATA_MATRIX' } } };
-                            
-                            // Мы не хотим, чтобы onScanSuccess показывал тост, если это дубликат, 
-                            // поэтому временно используем отдельную логику для PDF
-                            const currentFullCodeMode = document.getElementById('fullCodeMode').checked; 
-                            let serializedCode = currentFullCodeMode ? decodedText : decodedText.split(GS)[1];
+                            // ОБРАБАТЫВАЕМ РЕЗУЛЬТАТ ПРАВИЛЬНО
+                            if (decodedText) {
+                                const currentFullCodeMode = document.getElementById('fullCodeMode').checked;
+                                let serializedCode;
+                                
+                                if (currentFullCodeMode) {
+                                    serializedCode = decodedText;
+                                } else {
+                                    // Более надежное извлечение GS1 кода
+                                    const parts = decodedText.split(GS);
+                                    serializedCode = parts.length > 1 ? parts[1] : decodedText;
+                                }
 
-                            if (serializedCode && !codes.includes(serializedCode)) {
-                                codes.push(serializedCode);
-                                updateResults();
-                                codesFound++;
+                                if (serializedCode && serializedCode.trim() !== '') {
+                                    if (!codes.includes(serializedCode)) {
+                                        codes.push(serializedCode);
+                                        updateResults();
+                                        codesFound++;
+                                        showToast(`✅ Найден код на стр. ${i}`);
+                                        updateDebugInfo(`Стр. ${i}: найден код`);
+                                    } else {
+                                        duplicatesFound++;
+                                    }
+                                }
                             }
                             
                         } catch (scanError) {
-                            // Код не найден на этой странице, это нормально
+                            // Код не найден на этой странице - это нормально
+                            console.log(`На странице ${i} коды не найдены`);
                         }
                     }
 
-                    showToast(`✅ Сканирование PDF завершено. Найдено новых кодов: ${codesFound}. Всего: ${codes.length}`, false);
+                    const finalMessage = `✅ PDF сканирование завершено. Найдено: ${codesFound} новых, дубликатов: ${duplicatesFound}`;
+                    showToast(finalMessage, false);
+                    updateDebugInfo(finalMessage);
 
                 } catch (error) {
-                    showToast(`Критическая ошибка при обработке PDF: ${error.message}`, true);
+                    const errorMessage = `Ошибка обработки PDF: ${error.message}`;
+                    showToast(errorMessage, true);
+                    updateDebugInfo(errorMessage);
                     console.error("PDF processing error:", error);
                 }
+            };
+            fileReader.onerror = function() {
+                showToast('Ошибка чтения PDF файла', true);
+                updateDebugInfo('Ошибка чтения файла');
             };
             fileReader.readAsArrayBuffer(file);
         }
@@ -401,6 +476,11 @@
         }
 
         window.exportCSV = function() {
+            if (codes.length === 0) {
+                showToast('Нет кодов для скачивания', true);
+                return;
+            }
+            
             const csv = codes.join('\n');
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -417,13 +497,29 @@
             if (confirm(`Очистить ${codes.length} кодов?`)) {
                 codes = [];
                 updateResults();
+                updateDebugInfo('Все коды очищены');
                 showToast('Очищено');
             }
+        }
+
+        // Функция для тестирования
+        window.testScanning = function() {
+            console.log('=== ТЕСТ СКАНИРОВАНИЯ ===');
+            console.log('PDF.js version:', pdfjsLib.version);
+            console.log('Current codes:', codes);
+            console.log('HTML5 QR Code initialized:', !!html5QrCode);
+            console.log('Is scanning:', isScanning);
+            console.log('GS separator:', GS);
+            console.log('Full code mode:', document.getElementById('fullCodeMode').checked);
+            
+            updateDebugInfo('Тест: ' + (html5QrCode ? 'Scanner OK' : 'Scanner NULL'));
+            showToast('Тест завершен - проверьте консоль');
         }
 
         // Загружаем настройки при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             loadSettings();
+            updateDebugInfo('Система готова к работе');
         });
     </script>
 </body>
