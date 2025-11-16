@@ -83,6 +83,10 @@
             background: #28a745;
             color: white;
         }
+        .reset-btn {
+            background: #dc3545; /* Красный для сброса */
+            color: white;
+        }
         .toast {
             position: fixed;
             top: 10px;
@@ -105,7 +109,7 @@
         
         <div class="settings">
             <label>
-                <!-- ИЗМЕНЕНИЕ: Убран атрибут 'checked="false"', чтобы по умолчанию галочка была снята -->
+                <!-- ГАЛОЧКА: Убеждаемся, что атрибут 'checked' отсутствует -->
                 <input type="checkbox" id="fullCodeMode"> Полный код (все символы GS1)
             </label>
         </div>
@@ -120,7 +124,9 @@
             <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
             <button class="share-btn" onclick="shareCodes()">📤 Поделиться</button>
             <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
-            <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
+            <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить коды</button>
+            <!-- НОВАЯ КНОПКА: Сброс настроек localStorage -->
+            <button class="reset-btn" onclick="resetSettings()">⚙️ Сбросить настройки</button>
         </div>
     </div>
 
@@ -130,7 +136,7 @@
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
-        let fullCodeMode = false; // По умолчанию выключено
+        let fullCodeMode = false; // По умолчанию ЛОЖЬ (false)
         const GS = String.fromCharCode(29);
 
         function loadSettings() {
@@ -139,10 +145,19 @@
                 // Если настройка сохранена, используем ее
                 fullCodeMode = saved === 'true';
             } else {
-                // Если нет сохраненной настройки, используем дефолтное значение (false)
+                // Если нет сохраненной настройки, явно устанавливаем false
                 fullCodeMode = false; 
             }
+            // Устанавливаем состояние чекбокса
             document.getElementById('fullCodeMode').checked = fullCodeMode;
+        }
+
+        function resetSettings() {
+            if (confirm("Вы уверены, что хотите сбросить настройки режима сканирования?")) {
+                localStorage.removeItem('fullCodeMode');
+                loadSettings(); // Перезагружаем настройки
+                showToast('Настройки сброшены. Полный код выключен.', false);
+            }
         }
 
         function showToast(message, isError = false) {
@@ -270,7 +285,7 @@
             if (confirm(`Очистить ${codes.length} кодов?`)) {
                 codes = [];
                 updateResults();
-                showToast('Очищено');
+                showToast('Коды очищены');
             }
         }
 
