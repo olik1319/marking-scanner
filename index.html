@@ -105,7 +105,8 @@
         
         <div class="settings">
             <label>
-                <input type="checkbox" id="fullCodeMode" checked="false"> Полный код (все символы GS1)
+                <!-- ИЗМЕНЕНИЕ: Убран атрибут 'checked="false"', чтобы по умолчанию галочка была снята -->
+                <input type="checkbox" id="fullCodeMode"> Полный код (все символы GS1)
             </label>
         </div>
         
@@ -135,9 +136,11 @@
         function loadSettings() {
             const saved = localStorage.getItem('fullCodeMode');
             if (saved !== null) {
+                // Если настройка сохранена, используем ее
                 fullCodeMode = saved === 'true';
             } else {
-                fullCodeMode = false; // По умолчанию false
+                // Если нет сохраненной настройки, используем дефолтное значение (false)
+                fullCodeMode = false; 
             }
             document.getElementById('fullCodeMode').checked = fullCodeMode;
         }
@@ -160,6 +163,7 @@
                 return;
             }
 
+            // Логика извлечения кода зависит от режима
             let serializedCode = fullCodeMode ? decodedText : decodedText.split(GS)[1];
             
             if (!serializedCode) {
@@ -188,6 +192,7 @@
         function startScan() {
             const button = document.getElementById('scanButton');
             
+            // Обновляем fullCodeMode из состояния чекбокса перед сканированием и сохраняем
             fullCodeMode = document.getElementById('fullCodeMode').checked;
             localStorage.setItem('fullCodeMode', fullCodeMode);
 
