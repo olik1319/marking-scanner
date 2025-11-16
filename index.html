@@ -37,7 +37,7 @@
         }
         #reader {
             flex: 1;
-            min-height: 30vh;
+            min-height: 35vh;
             border: 2px dashed #ccc;
             border-radius: 8px;
             margin: 5px 0;
@@ -83,36 +83,6 @@
             background: #28a745;
             color: white;
         }
-        .sync-btn {
-            background: #ff6b35;
-            color: white;
-        }
-        .cloud-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin: 10px 0;
-            display: none;
-        }
-        .cloud-btn {
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        .webhook-section {
-            margin: 10px 0;
-            display: none;
-        }
-        .webhook-section input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-bottom: 5px;
-        }
         .toast {
             position: fixed;
             top: 10px;
@@ -125,9 +95,6 @@
             display: none;
             z-index: 1000;
         }
-        .toast.error {
-            background: #dc3545;
-        }
     </style>
 </head>
 <body>
@@ -138,7 +105,7 @@
         
         <div class="settings">
             <label>
-                <input type="checkbox" id="fullCodeMode"> Полный код (все символы GS1)
+                <input type="checkbox" id="fullCodeMode" checked="false"> Полный код (все символы GS1)
             </label>
         </div>
         
@@ -150,20 +117,6 @@
         
         <div class="buttons">
             <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
-            <button class="sync-btn" onclick="toggleCloudOptions()">☁️ Удаленная синхронизация</button>
-            
-            <div id="cloudOptions" class="cloud-options">
-                <button class="cloud-btn" style="background: #4285F4;" onclick="syncWithGoogleDrive()">📊 Google Drive</button>
-                <button class="cloud-btn" style="background: #007ee5;" onclick="syncWithDropbox()">📁 Dropbox</button>
-                <button class="cloud-btn" style="background: #25D366;" onclick="syncWithTelegram()">💬 Telegram</button>
-                <button class="cloud-btn" style="background: #FF6600;" onclick="syncWithEmail()">📧 Email</button>
-            </div>
-            
-            <div id="webhookSection" class="webhook-section">
-                <input type="text" id="cloudWebhook" placeholder="Webhook URL (для уведомлений)">
-                <button onclick="saveWebhook()" style="background: #666; color: white; width: 100%;">💾 Сохранить webhook</button>
-            </div>
-            
             <button class="share-btn" onclick="shareCodes()">📤 Поделиться</button>
             <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
             <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
@@ -176,24 +129,17 @@
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
-        let fullCodeMode = false;
-        let cloudWebhookUrl = '';
+        let fullCodeMode = false; // По умолчанию выключено
         const GS = String.fromCharCode(29);
 
-        // Загрузка настроек
         function loadSettings() {
-            // Настройки сканирования
-            const savedMode = localStorage.getItem('fullCodeMode');
-            if (savedMode !== null) {
-                fullCodeMode = savedMode === 'true';
+            const saved = localStorage.getItem('fullCodeMode');
+            if (saved !== null) {
+                fullCodeMode = saved === 'true';
+            } else {
+                fullCodeMode = false; // По умолчанию false
             }
             document.getElementById('fullCodeMode').checked = fullCodeMode;
-            
-            // Webhook
-            const savedWebhook = localStorage.getItem('cloudWebhook');
-            if (savedWebhook) {
-                cloudWebhookUrl = savedWebhook;
-            }
         }
 
         function showToast(message, isError = false) {
@@ -201,181 +147,13 @@
             toast.textContent = message;
             toast.style.background = isError ? '#dc3545' : '#28a745';
             toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 4000);
+            setTimeout(() => toast.style.display = 'none', 2000);
         }
 
         function updateResults() {
             document.getElementById('results').textContent = 'Отсканировано: ' + codes.length + ' кодов';
         }
 
-        function toggleCloudOptions() {
-            const options = document.getElementById('cloudOptions');
-            const webhookSection = document.getElementById('webhookSection');
-            
-            if (options.style.display === 'grid') {
-                options.style.display = 'none';
-                webhookSection.style.display = 'none';
-            } else {
-                options.style.display = 'grid';
-                webhookSection.style.display = 'block';
-                document.getElementById('cloudWebhook').value = cloudWebhookUrl;
-            }
-        }
-
-        function saveWebhook() {
-            cloudWebhookUrl = document.getElementById('cloudWebhook').value.trim();
-            localStorage.setItem('cloudWebhook', cloudWebhookUrl);
-            showToast('Webhook сохранен');
-        }
-
-        // 1. Google Drive
-        async function syncWithGoogleDrive() {
-            if (codes.length === 0) {
-                showToast('Нет данных для синхронизации', true);
-                return;
-            }
-
-            const data = prepareSyncData();
-            const jsonData = JSON.stringify(data, null, 2);
-            downloadFile(jsonData, `scanner_codes_${getTimestamp()}.json`, 'application/json');
-            
-            showToast('📁 Файл готов. Загрузите в Google Drive');
-            sendWebhookNotification('Google Drive');
-        }
-
-        // 2. Dropbox
-        async function syncWithDropbox() {
-            if (codes.length === 0) {
-                showToast('Нет данных для синхронизации', true);
-                return;
-            }
-
-            const data = prepareSyncData();
-            const csvData = convertToCSV(data.codes);
-            
-            downloadFile(JSON.stringify(data, null, 2), `scanner_data_${getTimestamp()}.json`, 'application/json');
-            downloadFile("\uFEFF" + csvData, `scanner_codes_${getTimestamp()}.csv`, 'text/csv');
-            
-            showToast('📁 Файлы готовы. Загрузите в Dropbox');
-            sendWebhookNotification('Dropbox');
-        }
-
-        // 3. Telegram
-        async function syncWithTelegram() {
-            if (codes.length === 0) {
-                showToast('Нет данных для отправки', true);
-                return;
-            }
-
-            const data = prepareSyncData();
-            const text = `📊 Новые отсканированные коды: ${data.count} шт.\nВремя: ${new Date(data.timestamp).toLocaleString()}`;
-            
-            const file = new File([JSON.stringify(data, null, 2)], `telegram_codes_${getTimestamp()}.json`, { type: 'application/json' });
-            
-            if (navigator.share && navigator.canShare({ files: [file] })) {
-                try {
-                    await navigator.share({
-                        title: `Коды (${data.count} шт)`,
-                        text: text,
-                        files: [file]
-                    });
-                    showToast('✅ Данные отправлены в Telegram');
-                } catch (error) {
-                    fallbackTelegram(data);
-                }
-            } else {
-                fallbackTelegram(data);
-            }
-            
-            sendWebhookNotification('Telegram');
-        }
-
-        function fallbackTelegram(data) {
-            const jsonData = JSON.stringify(data, null, 2);
-            downloadFile(jsonData, `telegram_codes_${getTimestamp()}.json`, 'application/json');
-            showToast('📁 Файл готов. Отправьте в Telegram');
-        }
-
-        // 4. Email
-        async function syncWithEmail() {
-            if (codes.length === 0) {
-                showToast('Нет данных для отправки', true);
-                return;
-            }
-
-            const data = prepareSyncData();
-            const csvData = convertToCSV(data.codes);
-            
-            const subject = `Отсканированные коды (${data.count} шт)`;
-            const body = `Во вложении данные сканирования:\n- Количество: ${data.count}\n- Время: ${new Date().toLocaleString()}\n\nФайлы:\n1. JSON - полные данные\n2. CSV - только коды`;
-            
-            // Создаем файлы
-            downloadFile(JSON.stringify(data, null, 2), `email_codes_${getTimestamp()}.json`, 'application/json');
-            downloadFile("\uFEFF" + csvData, `email_codes_${getTimestamp()}.csv`, 'text/csv');
-            
-            // Открываем почту
-            const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            window.location.href = mailtoLink;
-            
-            showToast('📧 Файлы готовы. Прикрепите к письму');
-            sendWebhookNotification('Email');
-        }
-
-        // Webhook уведомление
-        async function sendWebhookNotification(service) {
-            if (!cloudWebhookUrl) return;
-            
-            try {
-                await fetch(cloudWebhookUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        service: service,
-                        action: 'new_data',
-                        count: codes.length,
-                        timestamp: new Date().toISOString(),
-                        message: `Новые данные доступны в ${service} (${codes.length} кодов)`
-                    })
-                });
-            } catch (error) {
-                console.log('Webhook error:', error);
-            }
-        }
-
-        // Вспомогательные функции
-        function prepareSyncData() {
-            return {
-                scanner_app: "DataMatrix Scanner",
-                version: "1.0",
-                timestamp: new Date().toISOString(),
-                codes: codes,
-                count: codes.length,
-                format: "GS1 DataMatrix",
-                full_code_mode: fullCodeMode
-            };
-        }
-
-        function convertToCSV(codesArray) {
-            return codesArray.join('\n');
-        }
-
-        function downloadFile(content, fileName, mimeType) {
-            const blob = new Blob([content], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }
-
-        function getTimestamp() {
-            return Date.now();
-        }
-
-        // Сканирование кодов
         function onScanSuccess(decodedText, result) {
             if (result.result.format.formatName !== 'DATA_MATRIX') {
                 showToast('Требуется DataMatrix', true);
@@ -397,10 +175,6 @@
             codes.push(serializedCode);
             updateResults();
             showToast(`✅ +1 (всего: ${codes.length})`);
-        }
-
-        function onScanFailure(error) {
-            // Игнорируем ошибки сканирования
         }
 
         function toggleScan() {
@@ -432,7 +206,7 @@
                     supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX]
                 }, 
                 onScanSuccess, 
-                onScanFailure
+                () => {}
             ).then(() => {
                 isScanning = true;
             }).catch(err => {
@@ -476,11 +250,6 @@
         }
 
         function exportCSV() {
-            if (codes.length === 0) {
-                showToast('Нет кодов для экспорта', true);
-                return;
-            }
-            
             const csv = codes.join('\n');
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
@@ -500,8 +269,10 @@
             }
         }
 
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', loadSettings);
+        // Загружаем настройки при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
     </script>
 </body>
 </html>
