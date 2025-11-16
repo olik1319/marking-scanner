@@ -153,11 +153,6 @@
     <canvas id="pdfCanvas" style="display: none;"></canvas>
     <div id="toast" class="toast"></div>
 
-    <!-- Аудио элементы для звуков -->
-    <audio id="scanSound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" type="audio/wav">
-    </audio>
-
     <script type="module">
         // Импорт PDF.js (требуется type="module")
         import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs';
@@ -191,8 +186,8 @@
             localStorage.setItem('soundEnabled', soundEnabled);
         }
 
-        // Функция воспроизведения звука сканирования
-        window.playScanSound = function() {
+        // Функция воспроизведения звука успешного сканирования
+        window.playSuccessSound = function() {
             const soundEnabled = document.getElementById('soundEnabled').checked;
             if (!soundEnabled) return;
 
@@ -204,29 +199,78 @@
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
                 
-                // Настройки звука сканирования (короткий бип)
+                // Звук успешного сканирования (позитивный, восходящий)
                 oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+                oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.15);
                 
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.15);
+                
+            } catch (error) {
+                console.log('Ошибка воспроизведения звука успеха:', error);
+            }
+        }
+
+        // Функция воспроизведения звука повторного сканирования (дубликат)
+        window.playDuplicateSound = function() {
+            const soundEnabled = document.getElementById('soundEnabled').checked;
+            if (!soundEnabled) return;
+
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Звук дубликата (нисходящий, предупреждающий)
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.2);
+                
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+                
+            } catch (error) {
+                console.log('Ошибка воспроизведения звука дубликата:', error);
+            }
+        }
+
+        // Функция воспроизведения звука ошибки сканирования
+        window.playErrorSound = function() {
+            const soundEnabled = document.getElementById('soundEnabled').checked;
+            if (!soundEnabled) return;
+
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Звук ошибки (короткий, резкий)
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime + 0.05);
+                oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
                 
                 oscillator.start(audioContext.currentTime);
                 oscillator.stop(audioContext.currentTime + 0.1);
                 
             } catch (error) {
-                console.log('Ошибка воспроизведения звука:', error);
-                // Резервный вариант - использовать HTML5 Audio
-                try {
-                    const scanSound = document.getElementById('scanSound');
-                    if (scanSound) {
-                        scanSound.currentTime = 0;
-                        scanSound.play().catch(e => console.log('Audio play failed:', e));
-                    }
-                } catch (e) {
-                    console.log('Резервный звук также не сработал');
-                }
+                console.log('Ошибка воспроизведения звука ошибки:', error);
             }
         }
 
@@ -251,6 +295,7 @@
             // Проверка формата (только для сканирования с камеры)
             if (result && result.result.format.formatName !== 'DATA_MATRIX') {
                 showToast('Требуется DataMatrix', true);
+                playErrorSound();
                 return;
             }
 
@@ -259,16 +304,18 @@
             
             if (!serializedCode) {
                 showToast("Ошибка кода или неверный формат GS1", true);
+                playErrorSound();
                 return;
             }
             
             if (codes.includes(serializedCode)) {
                 showToast("Уже отсканирован", true);
+                playDuplicateSound(); // ЗВУК ДУБЛИКАТА
                 return;
             }
             
-            // ВОСПРОИЗВОДИМ ЗВУК ПРИ УСПЕШНОМ СКАНИРОВАНИИ
-            playScanSound();
+            // ВОСПРОИЗВОДИМ ЗВУК УСПЕШНОГО СКАНИРОВАНИЯ
+            playSuccessSound();
             
             codes.push(serializedCode);
             updateResults();
@@ -311,6 +358,7 @@
                 isScanning = true;
             }).catch(err => {
                 showToast("Ошибка камеры: " + err, true);
+                playErrorSound();
                 stopScan();
             });
         }
@@ -358,6 +406,7 @@
                 scanImageFile(file);
             } else {
                 showToast('Неподдерживаемый тип файла', true);
+                playErrorSound();
             }
         }
 
@@ -371,6 +420,7 @@
                 })
                 .catch(err => {
                     showToast(`Ошибка сканирования файла: Код не найден.`, true);
+                    playErrorSound();
                     console.error("File scan error:", err);
                 });
         }
@@ -413,18 +463,19 @@
                             // Если код найден, обрабатываем его
                             const mockResult = { result: { format: { formatName: 'DATA_MATRIX' } } };
                             
-                            // Мы не хотим, чтобы onScanSuccess показывал тост, если это дубликат, 
-                            // поэтому временно используем отдельную логику для PDF
                             const currentFullCodeMode = document.getElementById('fullCodeMode').checked; 
                             let serializedCode = currentFullCodeMode ? decodedText : decodedText.split(GS)[1];
 
                             if (serializedCode && !codes.includes(serializedCode)) {
-                                // ВОСПРОИЗВОДИМ ЗВУК ДЛЯ PDF
-                                playScanSound();
+                                // ВОСПРОИЗВОДИМ ЗВУК УСПЕХА ДЛЯ PDF
+                                playSuccessSound();
                                 
                                 codes.push(serializedCode);
                                 updateResults();
                                 codesFound++;
+                            } else if (serializedCode && codes.includes(serializedCode)) {
+                                // ВОСПРОИЗВОДИМ ЗВУК ДУБЛИКАТА ДЛЯ PDF
+                                playDuplicateSound();
                             }
                             
                         } catch (scanError) {
@@ -436,6 +487,7 @@
 
                 } catch (error) {
                     showToast(`Критическая ошибка при обработке PDF: ${error.message}`, true);
+                    playErrorSound();
                     console.error("PDF processing error:", error);
                 }
             };
@@ -447,6 +499,7 @@
         window.shareCodes = function() {
             if (codes.length === 0) {
                 showToast('Нет кодов для отправки', true);
+                playErrorSound();
                 return;
             }
             
@@ -469,6 +522,12 @@
         }
 
         window.exportCSV = function() {
+            if (codes.length === 0) {
+                showToast('Нет кодов для скачивания', true);
+                playErrorSound();
+                return;
+            }
+            
             const csv = codes.join('\n');
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -481,7 +540,10 @@
         }
 
         window.clearCodes = function() {
-            if (codes.length === 0) return;
+            if (codes.length === 0) {
+                playErrorSound();
+                return;
+            }
             if (confirm(`Очистить ${codes.length} кодов?`)) {
                 codes = [];
                 updateResults();
