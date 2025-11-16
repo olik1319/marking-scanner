@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сканер кодов</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>Сканер кодов DataMatrix</title>
+    
+    <!-- Библиотеки для сканирования -->
+    <script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -35,7 +39,7 @@
             margin: 5px 0;
             font-size: 0.9rem;
         }
-        #reader {
+        #interactive {
             flex: 1;
             min-height: 35vh;
             border: 2px dashed #ccc;
@@ -45,6 +49,16 @@
             align-items: center;
             justify-content: center;
             background: #f9f9f9;
+            position: relative;
+            overflow: hidden;
+        }
+        #interactive.viewport {
+            position: relative;
+        }
+        #interactive canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         #results {
             text-align: center;
@@ -101,27 +115,22 @@
             text-align: center;
             margin-top: 5px;
         }
-        .progress {
-            width: 100%;
-            height: 4px;
-            background: #ddd;
-            border-radius: 2px;
+        .camera-select {
+            text-align: center;
             margin: 5px 0;
-            display: none;
         }
-        .progress-bar {
-            height: 100%;
-            background: #007bff;
-            border-radius: 2px;
-            width: 0%;
-            transition: width 0.3s;
+        #cameraSelection {
+            width: 100%;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📦 Сканер кодов (DataMatrix GS1)</h1>
+            <h1>📦 Сканер DataMatrix GS1</h1>
         </div>
         
         <div class="settings">
@@ -129,17 +138,19 @@
                 <input type="checkbox" id="fullCodeMode" onchange="saveSettings()"> Полный код (все символы GS1)
             </label>
         </div>
+
+        <div class="camera-select">
+            <select id="cameraSelection">
+                <option value="">Выберите камеру...</option>
+            </select>
+        </div>
         
-        <div id="reader">
+        <div id="interactive">
             <div>Камера не активирована</div>
         </div>
         
         <div id="results">Отсканировано: 0 кодов</div>
         <div class="debug-info" id="debugInfo">Готов к работе</div>
-        
-        <div class="progress" id="progress">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
         
         <div class="buttons">
             <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
@@ -158,11 +169,15 @@
 
     <div id="toast" class="toast"></div>
 
+    <!-- Скрытые элементы -->
+    <canvas id="tempCanvas" style="display: none;"></canvas>
+    <img id="tempImage" style="display: none;">
+
     <script>
         // Глобальные переменные
         window.codes = [];
-        window.html5QrCode = null;
         window.isScanning = false;
+        window.currentStream = null;
         window.GS = String.fromCharCode(29);
         
         // --- Настройки и UI ---
@@ -194,32 +209,10 @@
             document.getElementById('debugInfo').textContent = message;
         }
 
-        window.updateProgress = function(percent, message = '') {
-            const progress = document.getElementById('progress');
-            const progressBar = document.getElementById('progressBar');
-            
-            if (percent > 0) {
-                progress.style.display = 'block';
-                progressBar.style.width = percent + '%';
-            } else {
-                progress.style.display = 'none';
-            }
-            
-            if (message) {
-                updateDebugInfo(message);
-            }
-        }
-
         // --- Логика сканирования ---
 
-        window.onScanSuccess = function(decodedText, result) {
-            const currentFullCodeMode = document.getElementById('fullCodeMode').checked; 
-
-            // Проверка формата (только для сканирования с камеры)
-            if (result && result.result && result.result.format && result.result.format.formatName !== 'DATA_MATRIX') {
-                showToast('Требуется DataMatrix', true);
-                return;
-            }
+        window.processScannedCode = function(decodedText) {
+            const currentFullCodeMode = document.getElementById('fullCodeMode').checked;
 
             // Логика извлечения кода
             let serializedCode;
@@ -232,21 +225,40 @@
             
             if (!serializedCode || serializedCode.trim() === '') {
                 showToast("Ошибка кода или неверный формат GS1", true);
-                return;
+                return false;
             }
             
             if (codes.includes(serializedCode)) {
                 showToast("Уже отсканирован", true);
-                return;
+                return false;
             }
             
             codes.push(serializedCode);
             updateResults();
             showToast(`✅ +1 (всего: ${codes.length})`);
             updateDebugInfo(`Последний код: ${serializedCode.substring(0, 30)}...`);
+            return true;
         }
 
-        // --- Управление камерой ---
+        // --- Сканирование с камеры с Quagga ---
+
+        window.initCameras = async function() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                const cameraSelect = document.getElementById('cameraSelection');
+                
+                cameraSelect.innerHTML = '<option value="">Выберите камеру...</option>';
+                videoDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Камера ${cameraSelect.length}`;
+                    cameraSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Ошибка получения камер:', error);
+            }
+        }
 
         window.toggleScan = function() {
             if (isScanning) {
@@ -257,74 +269,88 @@
         }
 
         window.startScan = function() {
-            const button = document.getElementById('scanButton');
-            
-            saveSettings(); 
+            const cameraId = document.getElementById('cameraSelection').value;
+            if (!cameraId) {
+                showToast('Сначала выберите камеру', true);
+                return;
+            }
 
+            const button = document.getElementById('scanButton');
             button.textContent = '⏹️ ОСТАНОВИТЬ СКАНИРОВАНИЕ';
             button.classList.add('scanning');
 
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                { 
-                    fps: 10, 
-                    qrbox: { width: 200, height: 200 },
-                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX]
-                }, 
-                onScanSuccess, 
-                () => {}
-            ).then(() => {
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.getElementById('interactive'),
+                    constraints: {
+                        deviceId: cameraId,
+                        facingMode: "environment"
+                    }
+                },
+                decoder: {
+                    readers: [
+                        "code_128_reader",
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_39_reader",
+                        "code_39_vin_reader",
+                        "codabar_reader",
+                        "upc_reader",
+                        "upc_e_reader",
+                        "i2of5_reader",
+                        "2of5_reader",
+                        "code_93_reader"
+                    ]
+                },
+                locate: true
+            }, function(err) {
+                if (err) {
+                    console.error(err);
+                    showToast('Ошибка инициализации камеры', true);
+                    stopScan();
+                    return;
+                }
+                Quagga.start();
                 isScanning = true;
-                updateDebugInfo("Камера активна - сканируйте DataMatrix");
-            }).catch(err => {
-                showToast("Ошибка камеры: " + err, true);
-                updateDebugInfo("Ошибка камеры: " + err);
-                stopScan();
+                updateDebugInfo("Камера активна - сканируйте коды");
+            });
+
+            Quagga.onDetected(function(result) {
+                if (result.codeResult && result.codeResult.code) {
+                    processScannedCode(result.codeResult.code);
+                }
             });
         }
 
         window.stopScan = function() {
-            const button = document.getElementById('scanButton');
-            
-            if (html5QrCode && isScanning) {
-                html5QrCode.stop().then(() => {
-                    isScanning = false;
-                    button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
-                    button.classList.remove('scanning');
-                    updateDebugInfo("Камера остановлена");
-                }).catch(() => {
-                    isScanning = false;
-                    button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
-                    button.classList.remove('scanning');
-                    updateDebugInfo("Камера остановлена");
-                });
+            if (isScanning) {
+                Quagga.stop();
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+                }
+                isScanning = false;
+                
+                const button = document.getElementById('scanButton');
+                button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
+                button.classList.remove('scanning');
+                updateDebugInfo("Камера остановлена");
             }
         }
-        
-        // --- Сканирование из файла (Изображение или PDF) ---
+
+        // --- Сканирование из файла ---
 
         window.scanFromFile = function(event) {
-            if (isScanning) {
-                showToast('Сначала остановите сканирование с камеры', true);
-                event.target.value = null;
-                return;
-            }
-
             const file = event.target.files[0];
             if (!file) return;
 
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-            
-            event.target.value = null; 
+            event.target.value = null;
 
             if (file.type === 'application/pdf') {
-                scanPdfFile(file);
+                showToast('Для PDF используйте скриншоты страниц', true);
+                updateDebugInfo('Сделайте скриншот PDF и загрузите как изображение');
             } else if (file.type.startsWith('image/')) {
                 scanImageFile(file);
             } else {
@@ -332,196 +358,77 @@
             }
         }
 
-        function scanImageFile(file) {
-            showToast(`Сканирование изображения: ${file.name}...`);
-            updateDebugInfo(`Сканирование изображения: ${file.name}`);
-            
-            html5QrCode.scanFile(file, true)
-                .then(decodedText => {
-                    const mockResult = { 
-                        result: { 
-                            format: { 
-                                formatName: 'DATA_MATRIX',
-                                format: 1
-                            } 
-                        } 
-                    };
-                    onScanSuccess(decodedText, mockResult);
-                    updateDebugInfo(`Изображение отсканировано: ${decodedText.substring(0, 30)}...`);
-                })
-                .catch(err => {
-                    if (err === "QR code parse error, error = No multi-formats found." || 
-                        err.includes("No MultiFormat Readers were able to detect the code")) {
-                        showToast('DataMatrix код не найден в изображении', true);
-                        updateDebugInfo('DataMatrix не найден в изображении');
-                    } else {
-                        showToast(`Ошибка сканирования: ${err}`, true);
-                        updateDebugInfo(`Ошибка: ${err}`);
-                    }
-                });
-        }
+        // Сканирование изображения с использованием jsQR и Quagga
+        async function scanImageFile(file) {
+            showToast('Сканирование изображения...');
+            updateDebugInfo('Обработка изображения...');
 
-        // НОВАЯ УЛУЧШЕННАЯ ФУНКЦИЯ СКАНИРОВАНИЯ PDF
-        async function scanPdfFile(file) {
-            showToast(`Загрузка PDF...`, false);
-            updateProgress(10, 'Загрузка PDF...');
+            const img = document.getElementById('tempImage');
+            const canvas = document.getElementById('tempCanvas');
+            const ctx = canvas.getContext('2d');
 
-            try {
-                // Используем внешний сервис для конвертации PDF в изображения
-                const formData = new FormData();
-                formData.append('file', file);
-
-                updateProgress(30, 'Конвертация PDF в изображения...');
-                
-                // Конвертируем PDF в изображения с помощью бесплатного API
-                const response = await fetch('https://api.pdf2image.xyz/convert', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error('Ошибка конвертации PDF');
-                }
-
-                const result = await response.json();
-                
-                if (!result.images || result.images.length === 0) {
-                    throw new Error('Не удалось получить изображения из PDF');
-                }
-
-                updateProgress(50, `Обработка ${result.images.length} страниц...`);
-                
-                let codesFound = 0;
-                let totalPages = result.images.length;
-
-                // Сканируем каждое изображение
-                for (let i = 0; i < totalPages; i++) {
-                    const imageUrl = result.images[i];
-                    updateProgress(50 + (i / totalPages) * 40, `Сканирование страницы ${i + 1} из ${totalPages}...`);
-
+            return new Promise((resolve) => {
+                img.onload = async function() {
+                    // Устанавливаем размеры canvas
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    // Рисуем изображение на canvas
+                    ctx.drawImage(img, 0, 0, img.width, img.height);
+                    
+                    let foundCode = false;
+                    
+                    // Попытка 1: Используем jsQR для QR-кодов и DataMatrix
                     try {
-                        // Загружаем изображение
-                        const imgResponse = await fetch(imageUrl);
-                        const blob = await imgResponse.blob();
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
                         
-                        // Сканируем изображение
-                        const decodedText = await html5QrCode.scanFile(blob, true);
-                        
-                        if (decodedText) {
-                            const currentFullCodeMode = document.getElementById('fullCodeMode').checked;
-                            let serializedCode;
-                            
-                            if (currentFullCodeMode) {
-                                serializedCode = decodedText;
-                            } else {
-                                const parts = decodedText.split(GS);
-                                serializedCode = parts.length > 1 ? parts[1] : decodedText;
-                            }
-
-                            if (serializedCode && serializedCode.trim() !== '') {
-                                if (!codes.includes(serializedCode)) {
-                                    codes.push(serializedCode);
-                                    updateResults();
-                                    codesFound++;
-                                    showToast(`✅ Найден код на стр. ${i + 1}`);
-                                }
-                            }
-                        }
-                    } catch (scanError) {
-                        // Пропускаем страницы без кодов
-                        console.log(`Страница ${i + 1}: коды не найдены`);
-                    }
-                }
-
-                updateProgress(100, `PDF сканирование завершено`);
-                setTimeout(() => updateProgress(0), 2000);
-                
-                showToast(`✅ Найдено ${codesFound} кодов в PDF`, false);
-                updateDebugInfo(`PDF: ${codesFound} кодов найдено`);
-
-            } catch (error) {
-                updateProgress(0);
-                showToast(`Ошибка: ${error.message}`, true);
-                updateDebugInfo(`Ошибка PDF: ${error.message}`);
-                
-                // Альтернативный метод - используем локальную конвертацию
-                console.log('Пробуем альтернативный метод...');
-                fallbackPdfScan(file);
-            }
-        }
-
-        // АЛЬТЕРНАТИВНЫЙ МЕТОД ДЛЯ PDF
-        async function fallbackPdfScan(file) {
-            showToast('Используем альтернативный метод...', false);
-            updateDebugInfo('Альтернативный метод PDF...');
-
-            // Создаем iframe для отображения PDF
-            const pdfUrl = URL.createObjectURL(file);
-            const iframe = document.createElement('iframe');
-            iframe.src = pdfUrl;
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-
-            // Ждем загрузки PDF
-            await new Promise(resolve => {
-                iframe.onload = resolve;
-            });
-
-            let codesFound = 0;
-
-            try {
-                // Получаем количество страниц
-                const pdfDoc = iframe.contentWindow?.document;
-                if (!pdfDoc) throw new Error('Не удалось загрузить PDF');
-
-                // Для простых PDF пытаемся найти изображения
-                const images = pdfDoc.querySelectorAll('img');
-                updateDebugInfo(`Найдено ${images.length} изображений в PDF`);
-
-                for (let i = 0; i < images.length; i++) {
-                    try {
-                        const img = images[i];
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        canvas.width = img.naturalWidth || img.width;
-                        canvas.height = img.naturalHeight || img.height;
-                        
-                        ctx.drawImage(img, 0, 0);
-                        
-                        const dataUrl = canvas.toDataURL('image/png');
-                        
-                        const decodedText = await html5QrCode.scanFile(dataUrl, true);
-                        
-                        if (decodedText) {
-                            const currentFullCodeMode = document.getElementById('fullCodeMode').checked;
-                            let serializedCode = currentFullCodeMode ? decodedText : decodedText.split(GS)[1];
-                            
-                            if (serializedCode && !codes.includes(serializedCode)) {
-                                codes.push(serializedCode);
-                                codesFound++;
-                            }
+                        if (code) {
+                            foundCode = processScannedCode(code.data);
                         }
                     } catch (e) {
-                        // Пропускаем ошибки
+                        console.log('jsQR не нашел кодов');
                     }
-                }
+                    
+                    // Попытка 2: Используем Quagga для штрихкодов
+                    if (!foundCode) {
+                        try {
+                            const result = await scanWithQuagga(canvas);
+                            if (result && result.codeResult && result.codeResult.code) {
+                                processScannedCode(result.codeResult.code);
+                            } else {
+                                showToast('Коды не найдены в изображении', true);
+                            }
+                        } catch (error) {
+                            showToast('Не удалось просканировать изображение', true);
+                        }
+                    }
+                    
+                    resolve();
+                };
+                
+                img.src = URL.createObjectURL(file);
+            });
+        }
 
-                if (codesFound > 0) {
-                    updateResults();
-                    showToast(`✅ Найдено ${codesFound} кодов`, false);
-                } else {
-                    showToast('Коды не найдены в PDF', true);
-                }
-
-            } catch (error) {
-                showToast('Не удалось просканировать PDF', true);
-            } finally {
-                // Очистка
-                document.body.removeChild(iframe);
-                URL.revokeObjectURL(pdfUrl);
-                updateProgress(0);
-            }
+        function scanWithQuagga(canvas) {
+            return new Promise((resolve) => {
+                Quagga.decodeSingle({
+                    decoder: {
+                        readers: [
+                            "code_128_reader",
+                            "ean_reader",
+                            "code_39_reader",
+                            "codabar_reader",
+                            "upc_reader"
+                        ]
+                    },
+                    locate: true,
+                    src: canvas.toDataURL()
+                }, function(result) {
+                    resolve(result);
+                });
+            });
         }
 
         // --- Утилиты ---
@@ -577,9 +484,10 @@
             }
         }
 
-        // Загружаем настройки при загрузке страницы
+        // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function() {
             loadSettings();
+            initCameras();
             updateDebugInfo('Система готова к работе');
         });
     </script>
