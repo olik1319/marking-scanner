@@ -83,10 +83,6 @@
             background: #28a745;
             color: white;
         }
-        .file-btn {
-            background: #17a2b8;
-            color: white;
-        }
         .toast {
             position: fixed;
             top: 10px;
@@ -99,29 +95,6 @@
             display: none;
             z-index: 1000;
         }
-        .file-input-container {
-            margin: 10px 0;
-            text-align: center;
-        }
-        .file-input-label {
-            display: inline-block;
-            padding: 10px 15px;
-            background: #17a2b8;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        #fileInput {
-            display: none;
-        }
-        .status {
-            font-size: 0.8rem;
-            color: #666;
-            text-align: center;
-            margin: 5px 0;
-            min-height: 20px;
-        }
     </style>
 </head>
 <body>
@@ -132,16 +105,8 @@
         
         <div class="settings">
             <label>
-                <input type="checkbox" id="fullCodeMode"> Полный код (все символы GS1)
+                <input type="checkbox" id="fullCodeMode" checked="false"> Полный код (все символы GS1)
             </label>
-        </div>
-        
-        <div class="file-input-container">
-            <label class="file-input-label">
-                📁 Выбрать изображения
-                <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" multiple>
-            </label>
-            <div id="status" class="status">Выберите файлы для сканирования</div>
         </div>
         
         <div id="reader">
@@ -152,6 +117,15 @@
         
         <div class="buttons">
             <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
+            
+            <!-- Добавленный элемент для сканирования из файла -->
+            <input type="file" id="fileInput" 
+                   accept="image/*, application/pdf" 
+                   style="display: none;" 
+                   onchange="scanFromFile(event)">
+            <button class="secondary-btn" onclick="document.getElementById('fileInput').click()">🖼️ Сканировать из файла</button>
+            <!-- Конец добавленного элемента -->
+
             <button class="share-btn" onclick="shareCodes()">📤 Поделиться</button>
             <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
             <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
@@ -164,7 +138,7 @@
         let codes = [];
         let html5QrCode = null;
         let isScanning = false;
-        let fullCodeMode = false;
+        let fullCodeMode = false; // По умолчанию выключено
         const GS = String.fromCharCode(29);
 
         function loadSettings() {
@@ -172,7 +146,7 @@
             if (saved !== null) {
                 fullCodeMode = saved === 'true';
             } else {
-                fullCodeMode = false;
+                fullCodeMode = false; // По умолчанию false
             }
             document.getElementById('fullCodeMode').checked = fullCodeMode;
         }
@@ -182,11 +156,7 @@
             toast.textContent = message;
             toast.style.background = isError ? '#dc3545' : '#28a745';
             toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 3000);
-        }
-
-        function updateStatus(message) {
-            document.getElementById('status').textContent = message;
+            setTimeout(() => toast.style.display = 'none', 2000);
         }
 
         function updateResults() {
@@ -194,20 +164,20 @@
         }
 
         function onScanSuccess(decodedText, result) {
-            if (result.result.format.formatName !== 'DATA_MATRIX') {
+            // Проверка формата: если это результат сканирования с камеры, проверяем формат
+            // Если это результат сканирования файла, мы предполагаем, что это DataMatrix (см. scanFromFile)
+            if (result && result.result.format.formatName !== 'DATA_MATRIX') {
                 showToast('Требуется DataMatrix', true);
                 return;
             }
 
+            // Логика извлечения кода (Serialized Code)
             let serializedCode = fullCodeMode ? decodedText : decodedText.split(GS)[1];
             
             if (!serializedCode) {
-                showToast("Ошибка кода", true);
+                showToast("Ошибка кода или неверный формат GS1", true);
                 return;
             }
-            
-            // Очищаем код
-            serializedCode = serializedCode.replace(/[^\x20-\x7E]/g, '').trim();
             
             if (codes.includes(serializedCode)) {
                 showToast("Уже отсканирован", true);
@@ -244,16 +214,16 @@
                 { facingMode: "environment" }, 
                 { 
                     fps: 10, 
-                    qrbox: { width: 250, height: 250 },
+                    qrbox: { width: 200, height: 200 },
+                    // Указываем, что ищем только DataMatrix
                     supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX]
                 }, 
                 onScanSuccess, 
                 () => {}
             ).then(() => {
                 isScanning = true;
-                updateStatus('Камера активна - сканируйте коды');
             }).catch(err => {
-                showToast("Ошибка камеры: " + err.message, true);
+                showToast("Ошибка камеры: " + err, true);
                 stopScan();
             });
         }
@@ -266,82 +236,57 @@
                     isScanning = false;
                     button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
                     button.classList.remove('scanning');
-                    updateStatus('Камера остановлена');
                 }).catch(err => {
+                    // Если камера уже была остановлена или ошибка
                     isScanning = false;
                     button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
                     button.classList.remove('scanning');
-                    updateStatus('Камера остановлена');
                 });
             }
         }
 
-        // Обработка выбора файлов
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const files = e.target.files;
-            if (files.length === 0) return;
-            
-            processFiles(files);
-        });
-
-        async function processFiles(files) {
-            updateStatus(`Обработка ${files.length} файлов...`);
-            let foundCodes = 0;
-            let processedFiles = 0;
-
-            for (let file of files) {
-                try {
-                    const codesFromFile = await processImageFile(file);
-                    foundCodes += codesFromFile;
-                    processedFiles++;
-                    updateStatus(`Обработано ${processedFiles}/${files.length} файлов, найдено ${foundCodes} кодов`);
-                } catch (error) {
-                    console.error('Ошибка обработки файла:', file.name, error);
-                    updateStatus(`Ошибка в файле: ${file.name}`);
-                }
+        /**
+         * Функция для сканирования кода из выбранного файла (изображения).
+         */
+        function scanFromFile(event) {
+            if (isScanning) {
+                showToast('Сначала остановите сканирование с камеры', true);
+                event.target.value = null; // Очищаем, чтобы можно было выбрать тот же файл
+                return;
             }
-            
-            updateStatus(`Готово! Обработано ${processedFiles} файлов, найдено ${foundCodes} кодов`);
-            showToast(`Найдено ${foundCodes} кодов из ${processedFiles} файлов`);
-            updateResults();
-        }
 
-        async function processImageFile(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    try {
-                        if (!html5QrCode) {
-                            html5QrCode = new Html5Qrcode("reader");
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Инициализируем объект, если он еще не создан
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+
+            showToast(`Сканирование файла: ${file.name}...`);
+
+            // Вызываем метод сканирования файла
+            html5QrCode.scanFile(file, true)
+                .then(decodedText => {
+                    // При сканировании файла html5-qrcode возвращает только строку.
+                    // Мы создаем "заглушку" (mock) объекта результата, 
+                    // чтобы удовлетворить условие DataMatrix в onScanSuccess.
+                    const mockResult = {
+                        result: {
+                            format: { formatName: 'DATA_MATRIX' } 
                         }
-                        
-                        // Пробуем сканировать файл
-                        const decodedText = await html5QrCode.scanFile(e.target.result, true);
-                        
-                        if (decodedText) {
-                            let serializedCode = fullCodeMode ? decodedText : decodedText.split(GS)[1];
-                            
-                            if (serializedCode) {
-                                serializedCode = serializedCode.replace(/[^\x20-\x7E]/g, '').trim();
-                                
-                                if (serializedCode && !codes.includes(serializedCode)) {
-                                    codes.push(serializedCode);
-                                    showToast(`✅ Найден код в ${file.name}`);
-                                    resolve(1);
-                                    return;
-                                }
-                            }
-                        }
-                        resolve(0);
-                    } catch (error) {
-                        // Если не удалось распознать - это нормально
-                        console.log(`Не удалось распознать код в ${file.name}:`, error.message);
-                        resolve(0);
-                    }
-                };
-                reader.onerror = () => resolve(0);
-                reader.readAsDataURL(file);
-            });
+                    };
+                    onScanSuccess(decodedText, mockResult);
+                })
+                .catch(err => {
+                    // В случае ошибки (например, код не найден или не DataMatrix)
+                    showToast(`Ошибка сканирования файла: Код не найден или не распознан.`, true);
+                    console.error("File scan error:", err);
+                })
+                .finally(() => {
+                    // Очищаем поле ввода файла
+                    event.target.value = null; 
+                });
         }
 
         function shareCodes() {
@@ -351,15 +296,19 @@
             }
             
             const csv = codes.join('\n');
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
+            // Добавляем BOM (\uFEFF) для корректного отображения кириллицы в Excel
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const file = new File([blob], `codes_${codes.length}.csv`, { type: 'text/csv' });
             
             if (navigator.share) {
                 navigator.share({
                     title: `Отсканированные коды (${codes.length})`,
                     files: [file]
-                }).catch(() => {
-                    exportCSV();
+                }).catch((error) => {
+                    // Если шаринг не удался или отменен, предлагаем скачать
+                    if (error.name !== 'AbortError') {
+                        exportCSV();
+                    }
                 });
             } else {
                 exportCSV();
@@ -367,20 +316,15 @@
         }
 
         function exportCSV() {
-            if (codes.length === 0) {
-                showToast('Нет кодов для скачивания', true);
-                return;
-            }
-            
             const csv = codes.join('\n');
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `codes_${codes.length}.csv`;
             a.click();
-            URL.revokeObjectURL(url);
-            showToast(`Скачан CSV (${codes.length} кодов)`);
+            URL.revokeObjectURL(url); // Очистка памяти
+            showToast(`Скачан CSV (${codes.length})`);
         }
 
         function clearCodes() {
@@ -388,7 +332,6 @@
             if (confirm(`Очистить ${codes.length} кодов?`)) {
                 codes = [];
                 updateResults();
-                updateStatus('Все коды очищены');
                 showToast('Очищено');
             }
         }
@@ -396,7 +339,6 @@
         // Загружаем настройки при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             loadSettings();
-            updateStatus('Готов к работе');
         });
     </script>
 </body>
