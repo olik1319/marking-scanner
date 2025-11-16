@@ -6,6 +6,7 @@
     <title>Сканер кодов</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.30/dist/dbr.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -134,6 +135,14 @@
             font-size: 0.8rem;
             color: #666;
             margin-top: 5px;
+            text-align: center;
+        }
+        .preview {
+            max-width: 200px;
+            max-height: 200px;
+            margin: 10px auto;
+            border: 1px solid #ccc;
+            display: none;
         }
     </style>
 </head>
@@ -154,6 +163,7 @@
                 📁 Выбрать файлы (изображения/PDF)
                 <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.pdf,.webp" multiple>
             </label>
+            <img id="imagePreview" class="preview" alt="Preview">
             <div class="progress" id="progressContainer">
                 <div class="progress-bar" id="progressBar"></div>
             </div>
@@ -182,10 +192,22 @@
         let html5QrCode = null;
         let isScanning = false;
         let fullCodeMode = false;
+        let scanner = null;
         const GS = String.fromCharCode(29);
         
         // Инициализация PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        // Инициализация Dynamsoft Barcode Scanner
+        async function initBarcodeScanner() {
+            try {
+                await Dynamsoft.DBR.BarcodeScanner.license = "DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9";
+                scanner = await Dynamsoft.DBR.BarcodeScanner.createInstance();
+                console.log("Barcode scanner initialized");
+            } catch (ex) {
+                console.error("Failed to initialize barcode scanner:", ex);
+            }
+        }
 
         function loadSettings() {
             const saved = localStorage.getItem('fullCodeMode');
@@ -218,13 +240,8 @@
         }
 
         function processScannedCode(decodedText, result = null) {
-            // Проверяем формат только если есть информация о результате
-            if (result && result.result?.format?.formatName !== 'DATA_MATRIX') {
-                showToast('Требуется DataMatrix', true);
-                return false;
-            }
-
             let serializedCode;
+            
             if (fullCodeMode) {
                 serializedCode = decodedText;
             } else {
@@ -253,9 +270,55 @@
             
             codes.push(serializedCode);
             updateResults();
-            showToast(`✅ Найден код: ${serializedCode.substring(0, 20)}...`);
+            showToast(`✅ Найден код: ${serializedCode}`);
             console.log('Найден код:', serializedCode);
             return true;
+        }
+
+        // Сканирование с помощью Dynamsoft (лучше для DataMatrix)
+        async function scanWithDynamsoft(imageElement) {
+            if (!scanner) {
+                await initBarcodeScanner();
+            }
+            
+            try {
+                let results = await scanner.decode(imageElement);
+                let foundCodes = 0;
+                
+                if (results && results.length > 0) {
+                    for (let result of results) {
+                        console.log("Found barcode:", result.barcodeText, "Format:", result.barcodeFormatString);
+                        if (result.barcodeFormatString === "DataMatrix" || 
+                            result.barcodeFormatString === "QR_CODE") {
+                            if (processScannedCode(result.barcodeText)) {
+                                foundCodes++;
+                            }
+                        }
+                    }
+                }
+                return foundCodes;
+            } catch (error) {
+                console.log("Dynamsoft scan error:", error);
+                return 0;
+            }
+        }
+
+        // Сканирование с помощью html5-qrcode (запасной вариант)
+        async function scanWithHtml5Qrcode(imageData) {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            
+            try {
+                const decodedText = await html5QrCode.scanFile(imageData, true);
+                if (decodedText && processScannedCode(decodedText)) {
+                    return 1;
+                }
+                return 0;
+            } catch (error) {
+                console.log("Html5Qrcode scan error:", error);
+                return 0;
+            }
         }
 
         function toggleScan() {
@@ -284,22 +347,15 @@
                 { 
                     fps: 10, 
                     qrbox: { width: 250, height: 250 },
-                    supportedScanTypes: [
-                        Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX,
-                        Html5QrcodeScanType.SCAN_TYPE_QR_CODE
-                    ],
+                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX],
                     formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX]
                 }, 
                 onScanSuccess, 
-                (error) => {
-                    // Игнорируем ошибки сканирования
-                    console.log('Scan error:', error);
-                }
+                () => {}
             ).then(() => {
                 isScanning = true;
             }).catch(err => {
-                console.error('Camera error:', err);
-                showToast("Ошибка камеры: " + err.message, true);
+                showToast("Ошибка камеры", true);
                 stopScan();
             });
         }
@@ -309,11 +365,6 @@
             
             if (html5QrCode && isScanning) {
                 html5QrCode.stop().then(() => {
-                    isScanning = false;
-                    button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
-                    button.classList.remove('scanning');
-                }).catch(err => {
-                    console.error('Stop error:', err);
                     isScanning = false;
                     button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
                     button.classList.remove('scanning');
@@ -348,11 +399,6 @@
             progressContainer.style.display = 'block';
             updateDebugInfo(`Начата обработка ${files.length} файлов...`);
             
-            // Инициализируем сканер если его нет
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 updateDebugInfo(`Обработка: ${file.name} (${i+1}/${files.length})`);
@@ -377,7 +423,6 @@
                 progressBar.style.width = progress + '%';
             }
             
-            // Задержка перед скрытием прогресс-бара
             setTimeout(() => {
                 progressContainer.style.display = 'none';
                 progressBar.style.width = '0%';
@@ -391,7 +436,6 @@
 
         async function processPDF(file) {
             let foundInPDF = 0;
-            updateDebugInfo(`Чтение PDF: ${file.name}`);
             
             try {
                 const arrayBuffer = await file.arrayBuffer();
@@ -399,10 +443,7 @@
                 updateDebugInfo(`PDF страниц: ${pdf.numPages}`);
                 
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                    updateDebugInfo(`Обработка страницы ${pageNum}/${pdf.numPages}`);
                     const page = await pdf.getPage(pageNum);
-                    
-                    // Увеличиваем масштаб для лучшего качества
                     const viewport = page.getViewport({ scale: 3.0 });
                     
                     const canvas = document.createElement('canvas');
@@ -415,64 +456,59 @@
                         viewport: viewport
                     }).promise;
                     
+                    // Пробуем оба метода сканирования
                     const imageData = canvas.toDataURL('image/jpeg', 0.9);
-                    const codesFromPage = await scanImageData(imageData, `PDF:${file.name}:page${pageNum}`);
-                    foundInPDF += codesFromPage;
+                    let codesFound = await scanWithDynamsoft(canvas);
                     
-                    updateDebugInfo(`Страница ${pageNum}: найдено ${codesFromPage} кодов`);
+                    if (codesFound === 0) {
+                        codesFound = await scanWithHtml5Qrcode(imageData);
+                    }
+                    
+                    foundInPDF += codesFound;
+                    updateDebugInfo(`Страница ${pageNum}: найдено ${codesFound} кодов`);
                 }
             } catch (error) {
                 console.error('PDF error:', error);
-                updateDebugInfo(`Ошибка PDF: ${error.message}`);
             }
             
             return foundInPDF;
         }
 
         async function processImage(file) {
-            updateDebugInfo(`Обработка изображения: ${file.name}`);
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = async function(e) {
                     try {
-                        const found = await scanImageData(e.target.result, `Image:${file.name}`);
-                        resolve(found);
+                        const img = new Image();
+                        img.onload = async function() {
+                            // Показываем превью
+                            const preview = document.getElementById('imagePreview');
+                            preview.src = e.target.result;
+                            preview.style.display = 'block';
+                            
+                            // Пробуем Dynamsoft сначала
+                            let codesFound = await scanWithDynamsoft(img);
+                            
+                            // Если не нашел, пробуем html5-qrcode
+                            if (codesFound === 0) {
+                                codesFound = await scanWithHtml5Qrcode(e.target.result);
+                            }
+                            
+                            // Скрываем превью через 2 секунды
+                            setTimeout(() => {
+                                preview.style.display = 'none';
+                            }, 2000);
+                            
+                            resolve(codesFound);
+                        };
+                        img.src = e.target.result;
                     } catch (error) {
                         console.error('Image processing error:', error);
                         resolve(0);
                     }
                 };
-                reader.onerror = () => resolve(0);
                 reader.readAsDataURL(file);
             });
-        }
-
-        async function scanImageData(imageData, source = 'unknown') {
-            let found = 0;
-            
-            try {
-                updateDebugInfo(`Сканирование изображения...`);
-                
-                // Пробуем разные настройки для сканирования
-                const decodedResult = await html5QrCode.scanFile(imageData, true, {
-                    formatsToSupport: [Html5QrcodeSupportedFormats.DATA_MATRIX],
-                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX]
-                });
-                
-                if (decodedResult) {
-                    updateDebugInfo(`Найден код в ${source}`);
-                    if (processScannedCode(decodedResult)) {
-                        found = 1;
-                    }
-                } else {
-                    updateDebugInfo(`Коды не найдены в ${source}`);
-                }
-            } catch (error) {
-                // Это нормально - код может не найтись в изображении
-                console.log(`No code found in ${source}:`, error.message);
-            }
-            
-            return found;
         }
 
         function shareCodes() {
@@ -508,9 +544,8 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `codes_${codes.length}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `codes_${codes.length}.csv`;
             a.click();
-            URL.revokeObjectURL(url);
             showToast(`Скачан CSV (${codes.length} кодов)`);
         }
 
@@ -524,9 +559,10 @@
             }
         }
 
-        // Загружаем настройки при загрузке страницы
+        // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             loadSettings();
+            initBarcodeScanner();
             updateDebugInfo('Готов к работе. Выберите файлы или запустите камеру.');
         });
     </script>
