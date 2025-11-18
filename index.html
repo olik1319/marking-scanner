@@ -4,333 +4,310 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Элементали: Слияние Стихий</title>
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         body {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: #fff;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px;
+            padding: 0;
+            overflow-x: hidden;
         }
 
-        .container {
-            width: 100%;
-            max-width: 500px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
+        .app {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 16px;
         }
 
-        header {
+        .header {
             text-align: center;
-            padding: 15px 0;
-            width: 100%;
+            margin-bottom: 20px;
+            padding: 0 16px;
         }
 
-        h1 {
-            font-size: 1.8rem;
-            margin-bottom: 5px;
-            background: linear-gradient(to right, #ff9a00, #ff2e63);
+        .title {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 8px;
         }
 
         .subtitle {
-            font-size: 1rem;
-            color: #a0a0c0;
+            font-size: 14px;
+            color: #A0A0C0;
+            opacity: 0.8;
         }
 
-        .game-info {
+        .stats-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 12px 15px;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
 
-        .energy-container, .level-container, .score-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .stat-item {
+            text-align: center;
+            flex: 1;
         }
 
-        .energy-container {
-            color: #ffcc00;
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
 
-        .level-container {
-            color: #4cd964;
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.7;
         }
 
-        .score-container {
-            color: #5ac8fa;
-        }
+        .energy { color: #FFD700; }
+        .level { color: #4CD964; }
+        .score { color: #5AC8FA; }
 
-        .value {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        .label {
-            font-size: 0.8rem;
-            margin-top: 3px;
-        }
-
-        .game-board {
-            width: 100%;
-            aspect-ratio: 1 / 1;
+        .game-container {
+            position: relative;
             background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            grid-template-rows: repeat(6, 1fr);
-            gap: 5px;
-            padding: 10px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
-        .rune {
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
-            user-select: none;
+        #gameCanvas {
+            width: 100%;
+            display: block;
+            background: transparent;
         }
 
-        .rune:hover {
-            transform: scale(1.05);
-        }
-
-        .rune.fire {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-            color: #fff;
-        }
-
-        .rune.water {
-            background: linear-gradient(135deg, #2193b0, #6dd5ed);
-            color: #fff;
-        }
-
-        .rune.earth {
-            background: linear-gradient(135deg, #834d9b, #d04ed6);
-            color: #fff;
-        }
-
-        .rune.air {
-            background: linear-gradient(135deg, #56ccf2, #2f80ed);
-            color: #fff;
-        }
-
-        .rune.light {
-            background: linear-gradient(135deg, #f9d423, #ff4e50);
-            color: #fff;
-        }
-
-        .rune.dark {
-            background: linear-gradient(135deg, #434343, #000000);
-            color: #fff;
-        }
-
-        .rune.lava {
-            background: linear-gradient(135deg, #ff8c00, #ff2e00);
-            color: #fff;
-        }
-
-        .rune.mist {
-            background: linear-gradient(135deg, #8e9eab, #eef2f3);
-            color: #333;
+        .combo-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            display: none;
+            z-index: 10;
         }
 
         .controls {
-            display: flex;
-            gap: 10px;
-            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
-        button {
-            flex: 1;
-            padding: 12px;
+        .vk-button {
+            background: linear-gradient(135deg, #5AC8FA, #007AFF);
             border: none;
-            border-radius: 8px;
-            font-weight: bold;
+            border-radius: 12px;
+            padding: 14px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        .vk-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
         }
 
-        .btn-energy {
-            background: linear-gradient(135deg, #ffcc00, #ff9500);
-            color: #fff;
-        }
+        .vk-button.energy { background: linear-gradient(135deg, #FFD700, #FF9500); }
+        .vk-button.shop { background: linear-gradient(135deg, #5AC8FA, #007AFF); }
+        .vk-button.help { background: linear-gradient(135deg, #4CD964, #34C759); }
 
-        .btn-shop {
-            background: linear-gradient(135deg, #5ac8fa, #007aff);
-            color: #fff;
-        }
-
-        .btn-help {
-            background: linear-gradient(135deg, #4cd964, #34c759);
-            color: #fff;
-        }
-
-        .epic-items {
-            width: 100%;
+        .shop-section {
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
 
-        .epic-items h2 {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
+        .shop-title {
+            font-size: 18px;
+            font-weight: 700;
             text-align: center;
-            color: #ffcc00;
+            margin-bottom: 16px;
+            color: #FFD700;
         }
 
         .items-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
         }
 
-        .item {
+        .shop-item {
             background: rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
             transition: all 0.2s ease;
             cursor: pointer;
         }
 
-        .item:hover {
+        .shop-item:active {
+            transform: scale(0.95);
             background: rgba(255, 255, 255, 0.25);
-            transform: scale(1.05);
         }
 
         .item-icon {
-            font-size: 1.8rem;
+            font-size: 32px;
+            margin-bottom: 8px;
         }
 
         .item-name {
-            font-size: 0.8rem;
-            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
         }
 
         .item-cost {
-            font-size: 0.7rem;
-            color: #ffcc00;
+            font-size: 12px;
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        /* Адаптивность для VK */
+        @media (max-width: 360px) {
+            .app {
+                padding: 12px;
+            }
+            
+            .title {
+                font-size: 20px;
+            }
+            
+            .stats-panel {
+                padding: 12px;
+            }
+            
+            .stat-value {
+                font-size: 18px;
+            }
         }
 
         @media (min-width: 768px) {
-            .container {
-                max-width: 700px;
-            }
-            
-            .game-board {
-                grid-template-columns: repeat(8, 1fr);
-                grid-template-rows: repeat(8, 1fr);
-            }
-            
-            h1 {
-                font-size: 2.2rem;
+            .app {
+                max-width: 400px;
+                margin: 0 auto;
             }
             
             .items-grid {
-                grid-template-columns: repeat(6, 1fr);
+                grid-template-columns: repeat(3, 1fr);
             }
+        }
+
+        /* Анимации */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse {
+            animation: pulse 0.3s ease-in-out;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        /* VK-specific styles */
+        .vkui__root {
+            background: transparent !important;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Элементали: Слияние Стихий</h1>
-            <p class="subtitle">Собирай руны, создавай элементалей и побеждай!</p>
-        </header>
-        
-        <div class="game-info">
-            <div class="energy-container">
-                <div class="value">150</div>
-                <div class="label">ЭНЕРГИЯ</div>
+    <div class="app">
+        <div class="header">
+            <h1 class="title">Элементали: Слияние Стихий</h1>
+            <p class="subtitle">Создавай мощные элементали через слияние рун!</p>
+        </div>
+
+        <div class="stats-panel">
+            <div class="stat-item">
+                <div class="stat-value energy" id="energyValue">150</div>
+                <div class="stat-label">ЭНЕРГИЯ</div>
             </div>
-            <div class="level-container">
-                <div class="value">5</div>
-                <div class="label">УРОВЕНЬ</div>
+            <div class="stat-item">
+                <div class="stat-value level" id="levelValue">5</div>
+                <div class="stat-label">УРОВЕНЬ</div>
             </div>
-            <div class="score-container">
-                <div class="value">2450</div>
-                <div class="label">ОЧКИ</div>
+            <div class="stat-item">
+                <div class="stat-value score" id="scoreValue">2450</div>
+                <div class="stat-label">ОЧКИ</div>
             </div>
         </div>
-        
-        <div class="game-board">
-            <!-- Руны будут генерироваться JavaScript -->
+
+        <div class="game-container">
+            <canvas id="gameCanvas"></canvas>
+            <div class="combo-overlay" id="comboOverlay">Комбо x3!</div>
         </div>
-        
+
         <div class="controls">
-            <button class="btn-energy">ЭНЕРГИЯ</button>
-            <button class="btn-shop">МАГАЗИН</button>
-            <button class="btn-help">ПОМОЩЬ</button>
+            <button class="vk-button energy" id="energyBtn">ЭНЕРГИЯ</button>
+            <button class="vk-button shop" id="shopBtn">МАГАЗИН</button>
+            <button class="vk-button help" id="helpBtn">ПОМОЩЬ</button>
         </div>
-        
-        <div class="epic-items">
-            <h2>ЭПИЧЕСКИЕ ПРЕДМЕТЫ</h2>
+
+        <div class="shop-section">
+            <h2 class="shop-title">ЭПИЧЕСКИЕ ПРЕДМЕТЫ</h2>
             <div class="items-grid">
-                <div class="item">
+                <div class="shop-item" data-cost="50">
                     <div class="item-icon">🔥</div>
                     <div class="item-name">Огненный шар</div>
                     <div class="item-cost">50 энергии</div>
                 </div>
-                <div class="item">
+                <div class="shop-item" data-cost="75">
                     <div class="item-icon">💧</div>
                     <div class="item-name">Водный щит</div>
                     <div class="item-cost">75 энергии</div>
                 </div>
-                <div class="item">
+                <div class="shop-item" data-cost="100">
                     <div class="item-icon">🌪️</div>
                     <div class="item-name">Вихрь</div>
                     <div class="item-cost">100 энергии</div>
                 </div>
-                <div class="item">
+                <div class="shop-item" data-cost="120">
                     <div class="item-icon">⚡</div>
                     <div class="item-name">Молния</div>
                     <div class="item-cost">120 энергии</div>
                 </div>
-                <div class="item">
+                <div class="shop-item" data-cost="150">
                     <div class="item-icon">💎</div>
                     <div class="item-name">Кристалл</div>
                     <div class="item-cost">150 энергии</div>
                 </div>
-                <div class="item">
+                <div class="shop-item" data-cost="200">
                     <div class="item-icon">🌀</div>
                     <div class="item-name">Портал</div>
                     <div class="item-cost">200 энергии</div>
@@ -340,81 +317,522 @@
     </div>
 
     <script>
+        // Инициализация VK Bridge
+        vkBridge.send('VKWebAppInit', {});
+        
+        // Получаем реферальные параметры если есть
+        let urlParams = new URLSearchParams(window.location.search);
+        let refSource = urlParams.get('ref') || 'direct';
+
         document.addEventListener('DOMContentLoaded', function() {
-            const gameBoard = document.querySelector('.game-board');
-            const runeTypes = ['fire', 'water', 'earth', 'air', 'light', 'dark', 'lava', 'mist'];
-            const runeSymbols = {
-                'fire': '🔥',
-                'water': '💧',
-                'earth': '🌍',
-                'air': '💨',
-                'light': '✨',
-                'dark': '🌑',
-                'lava': '🌋',
-                'mist': '🌫️'
+            // Элементы DOM
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const energyValue = document.getElementById('energyValue');
+            const levelValue = document.getElementById('levelValue');
+            const scoreValue = document.getElementById('scoreValue');
+            const comboOverlay = document.getElementById('comboOverlay');
+            const energyBtn = document.getElementById('energyBtn');
+            const shopBtn = document.getElementById('shopBtn');
+            const helpBtn = document.getElementById('helpBtn');
+            const shopItems = document.querySelectorAll('.shop-item');
+            
+            // Игровые переменные
+            let gameState = {
+                energy: 150,
+                level: 5,
+                score: 2450,
+                selectedRune: null,
+                runes: [],
+                boardSize: 6,
+                cellSize: 0,
+                comboCount: 0,
+                isSwapping: false
             };
             
-            // Создаем игровое поле
-            function createGameBoard() {
-                gameBoard.innerHTML = '';
-                const boardSize = window.innerWidth >= 768 ? 8 : 6;
+            // Типы рун с их свойствами
+            const runeTypes = [
+                { 
+                    id: 'fire', 
+                    name: 'Огонь', 
+                    color: '#FF6B6B', 
+                    secondaryColor: '#FF8E53',
+                    symbol: '🔥', 
+                    combo: 'Огненный Вихрь',
+                    description: 'Уничтожает соседние руны'
+                },
+                { 
+                    id: 'water', 
+                    name: 'Вода', 
+                    color: '#4ECDC4', 
+                    secondaryColor: '#44A08D',
+                    symbol: '💧', 
+                    combo: 'Водяной Щит',
+                    description: 'Защищает руны от падения'
+                },
+                { 
+                    id: 'earth', 
+                    name: 'Земля', 
+                    color: '#A178DF', 
+                    secondaryColor: '#8A5FCF',
+                    symbol: '🌍', 
+                    combo: 'Каменный Голем',
+                    description: 'Создает защитный барьер'
+                },
+                { 
+                    id: 'air', 
+                    name: 'Воздух', 
+                    color: '#56CCF2', 
+                    secondaryColor: '#2F80ED',
+                    symbol: '💨', 
+                    combo: 'Воздушный Поток',
+                    description: 'Перемещает руны на поле'
+                },
+                { 
+                    id: 'light', 
+                    name: 'Свет', 
+                    color: '#F9D423', 
+                    secondaryColor: '#FF4E50',
+                    symbol: '✨', 
+                    combo: 'Исцеляющий Свет',
+                    description: 'Очищает поле от препятствий'
+                },
+                { 
+                    id: 'dark', 
+                    name: 'Тьма', 
+                    color: '#434343', 
+                    secondaryColor: '#000000',
+                    symbol: '🌑', 
+                    combo: 'Темный Портал',
+                    description: 'Притягивает и уничтожает руны'
+                }
+            ];
+
+            // Инициализация игры
+            function initGame() {
+                resizeCanvas();
+                createRunes();
+                drawGame();
+                updateUI();
                 
-                for (let i = 0; i < boardSize * boardSize; i++) {
-                    const rune = document.createElement('div');
-                    const randomType = runeTypes[Math.floor(Math.random() * 6)]; // Используем только базовые типы
-                    
-                    rune.className = `rune ${randomType}`;
-                    rune.textContent = runeSymbols[randomType];
-                    rune.dataset.type = randomType;
-                    
-                    rune.addEventListener('click', function() {
-                        handleRuneClick(this);
+                // Обработчики событий
+                window.addEventListener('resize', resizeCanvas);
+                canvas.addEventListener('mousedown', handleMouseDown);
+                canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+                
+                // Обработчики кнопок
+                energyBtn.addEventListener('click', () => {
+                    addEnergy(25);
+                    showVKNotification('+25 энергии!');
+                    vkBridge.send('VKWebAppTapticImpactOccurred', { style: 'light' });
+                });
+                
+                shopBtn.addEventListener('click', () => {
+                    showVKNotification('Добро пожаловать в магазин!');
+                    vkBridge.send('VKWebAppTapticImpactOccurred', { style: 'medium' });
+                });
+                
+                helpBtn.addEventListener('click', () => {
+                    showHelp();
+                });
+                
+                // Обработчики предметов магазина
+                shopItems.forEach(item => {
+                    item.addEventListener('click', function() {
+                        const itemName = this.querySelector('.item-name').textContent;
+                        const itemCost = parseInt(this.getAttribute('data-cost'));
+                        
+                        if (gameState.energy >= itemCost) {
+                            gameState.energy -= itemCost;
+                            updateUI();
+                            showVKNotification(`Вы приобрели "${itemName}"!`);
+                            this.classList.add('pulse');
+                            vkBridge.send('VKWebAppTapticNotificationOccurred', { type: 'success' });
+                            
+                            setTimeout(() => {
+                                this.classList.remove('pulse');
+                            }, 500);
+                        } else {
+                            showVKNotification('Недостаточно энергии!');
+                            vkBridge.send('VKWebAppTapticNotificationOccurred', { type: 'error' });
+                        }
                     });
-                    
-                    gameBoard.appendChild(rune);
+                });
+
+                // Отправляем событие о начале игры
+                vkBridge.send('VKWebAppEvent', { 
+                    event: 'game_started', 
+                    params: { source: refSource } 
+                });
+            }
+
+            // Создание игрового поля с рунами
+            function createRunes() {
+                gameState.runes = [];
+                for (let row = 0; row < gameState.boardSize; row++) {
+                    gameState.runes[row] = [];
+                    for (let col = 0; col < gameState.boardSize; col++) {
+                        const randomType = runeTypes[Math.floor(Math.random() * runeTypes.length)];
+                        gameState.runes[row][col] = {
+                            type: randomType,
+                            row: row,
+                            col: col,
+                            x: col * gameState.cellSize,
+                            y: row * gameState.cellSize
+                        };
+                    }
                 }
             }
-            
-            // Обработка клика по руне
-            function handleRuneClick(runeElement) {
-                // Добавляем анимацию выделения
-                runeElement.style.transform = 'scale(1.1)';
-                runeElement.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.7)';
+
+            // Отрисовка игры
+            function drawGame() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawGrid();
+                drawRunes();
+                drawSelection();
+            }
+
+            // Отрисовка сетки
+            function drawGrid() {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i <= gameState.boardSize; i++) {
+                    // Вертикальные линии
+                    ctx.beginPath();
+                    ctx.moveTo(i * gameState.cellSize, 0);
+                    ctx.lineTo(i * gameState.cellSize, canvas.height);
+                    ctx.stroke();
+                    
+                    // Горизонтальные линии
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * gameState.cellSize);
+                    ctx.lineTo(canvas.width, i * gameState.cellSize);
+                    ctx.stroke();
+                }
+            }
+
+            // Отрисовка рун
+            function drawRunes() {
+                for (let row = 0; row < gameState.boardSize; row++) {
+                    for (let col = 0; col < gameState.boardSize; col++) {
+                        const rune = gameState.runes[row][col];
+                        if (rune) {
+                            drawRune(rune, col * gameState.cellSize, row * gameState.cellSize, gameState.cellSize);
+                        }
+                    }
+                }
+            }
+
+            // Отрисовка одной руны
+            function drawRune(rune, x, y, size) {
+                const padding = size * 0.1;
+                const centerX = x + size / 2;
+                const centerY = y + size / 2;
+                
+                // Градиентный фон
+                const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
+                gradient.addColorStop(0, rune.type.color);
+                gradient.addColorStop(1, rune.type.secondaryColor);
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.roundRect(x + padding, y + padding, size - padding * 2, size - padding * 2, 8);
+                ctx.fill();
+                
+                // Текст символа
+                ctx.font = `bold ${size * 0.4}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(rune.type.symbol, centerX, centerY);
+            }
+
+            // Отрисовка выделения
+            function drawSelection() {
+                if (gameState.selectedRune) {
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.roundRect(
+                        gameState.selectedRune.col * gameState.cellSize + 2,
+                        gameState.selectedRune.row * gameState.cellSize + 2,
+                        gameState.cellSize - 4,
+                        gameState.cellSize - 4,
+                        6
+                    );
+                    ctx.stroke();
+                }
+            }
+
+            // Обработка ввода
+            function handleMouseDown(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                handleInput(x, y);
+            }
+
+            function handleTouchStart(e) {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                handleInput(x, y);
+            }
+
+            function handleInput(x, y) {
+                if (gameState.isSwapping) return;
+                
+                const col = Math.floor(x / gameState.cellSize);
+                const row = Math.floor(y / gameState.cellSize);
+                
+                if (row >= 0 && row < gameState.boardSize && col >= 0 && col < gameState.boardSize) {
+                    const rune = gameState.runes[row][col];
+                    
+                    if (gameState.selectedRune) {
+                        if (isAdjacent(gameState.selectedRune, rune)) {
+                            gameState.isSwapping = true;
+                            swapRunes(gameState.selectedRune, rune);
+                            vkBridge.send('VKWebAppTapticImpactOccurred', { style: 'light' });
+                            
+                            setTimeout(() => {
+                                checkMatches();
+                                gameState.isSwapping = false;
+                            }, 300);
+                        }
+                        gameState.selectedRune = null;
+                    } else {
+                        gameState.selectedRune = rune;
+                        vkBridge.send('VKWebAppTapticImpactOccurred', { style: 'light' });
+                    }
+                    
+                    drawGame();
+                }
+            }
+
+            // Проверка соседства
+            function isAdjacent(rune1, rune2) {
+                return (
+                    (Math.abs(rune1.row - rune2.row) === 1 && rune1.col === rune2.col) ||
+                    (Math.abs(rune1.col - rune2.col) === 1 && rune1.row === rune2.row)
+                );
+            }
+
+            // Обмен рун
+            function swapRunes(rune1, rune2) {
+                [gameState.runes[rune1.row][rune1.col], gameState.runes[rune2.row][rune2.col]] = 
+                [gameState.runes[rune2.row][rune2.col], gameState.runes[rune1.row][rune1.col]];
+                
+                const tempRow = rune1.row;
+                const tempCol = rune1.col;
+                
+                rune1.row = rune2.row;
+                rune1.col = rune2.col;
+                
+                rune2.row = tempRow;
+                rune2.col = tempCol;
+            }
+
+            // Проверка совпадений
+            function checkMatches() {
+                let hasMatches = false;
+                
+                // Проверка горизонтальных совпадений
+                for (let row = 0; row < gameState.boardSize; row++) {
+                    for (let col = 0; col < gameState.boardSize - 2; col++) {
+                        const rune1 = gameState.runes[row][col];
+                        const rune2 = gameState.runes[row][col + 1];
+                        const rune3 = gameState.runes[row][col + 2];
+                        
+                        if (rune1 && rune2 && rune3 && 
+                            rune1.type.id === rune2.type.id && 
+                            rune1.type.id === rune3.type.id) {
+                            
+                            processMatch(row, col, 'horizontal', rune1.type);
+                            hasMatches = true;
+                            col += 2;
+                        }
+                    }
+                }
+                
+                // Проверка вертикальных совпадений
+                for (let col = 0; col < gameState.boardSize; col++) {
+                    for (let row = 0; row < gameState.boardSize - 2; row++) {
+                        const rune1 = gameState.runes[row][col];
+                        const rune2 = gameState.runes[row + 1][col];
+                        const rune3 = gameState.runes[row + 2][col];
+                        
+                        if (rune1 && rune2 && rune3 && 
+                            rune1.type.id === rune2.type.id && 
+                            rune1.type.id === rune3.type.id) {
+                            
+                            processMatch(row, col, 'vertical', rune1.type);
+                            hasMatches = true;
+                            row += 2;
+                        }
+                    }
+                }
+                
+                if (hasMatches) {
+                    updateUI();
+                    fillEmptySpaces();
+                    drawGame();
+                    
+                    setTimeout(() => {
+                        checkMatches();
+                    }, 500);
+                } else {
+                    if (gameState.comboCount > 0) {
+                        vkBridge.send('VKWebAppTapticNotificationOccurred', { type: 'success' });
+                    }
+                    gameState.comboCount = 0;
+                }
+            }
+
+            // Обработка совпадения
+            function processMatch(row, col, direction, type) {
+                gameState.comboCount++;
+                
+                // Начисление очков и энергии
+                const points = 100 * gameState.comboCount;
+                gameState.score += points;
+                addEnergy(10);
+                
+                // Показ комбо
+                showCombo(gameState.comboCount, type);
+                
+                // Удаление совпадающих рун
+                if (direction === 'horizontal') {
+                    for (let i = 0; i < 3; i++) {
+                        gameState.runes[row][col + i] = null;
+                    }
+                } else {
+                    for (let i = 0; i < 3; i++) {
+                        gameState.runes[row + i][col] = null;
+                    }
+                }
+                
+                // Отправка события в VK
+                vkBridge.send('VKWebAppEvent', { 
+                    event: 'match_found', 
+                    params: { 
+                        combo: gameState.comboCount,
+                        element: type.id,
+                        points: points
+                    } 
+                });
+            }
+
+            // Заполнение пустых мест
+            function fillEmptySpaces() {
+                for (let col = 0; col < gameState.boardSize; col++) {
+                    let emptySpaces = 0;
+                    
+                    for (let row = gameState.boardSize - 1; row >= 0; row--) {
+                        if (!gameState.runes[row][col]) {
+                            emptySpaces++;
+                        } else if (emptySpaces > 0) {
+                            gameState.runes[row + emptySpaces][col] = gameState.runes[row][col];
+                            gameState.runes[row][col] = null;
+                            gameState.runes[row + emptySpaces][col].row = row + emptySpaces;
+                        }
+                    }
+                    
+                    for (let row = 0; row < emptySpaces; row++) {
+                        const randomType = runeTypes[Math.floor(Math.random() * runeTypes.length)];
+                        gameState.runes[row][col] = {
+                            type: randomType,
+                            row: row,
+                            col: col,
+                            x: col * gameState.cellSize,
+                            y: row * gameState.cellSize
+                        };
+                    }
+                }
+            }
+
+            // Показать комбо
+            function showCombo(count, runeType) {
+                comboOverlay.textContent = `Комбо x${count}! ${runeType.combo}`;
+                comboOverlay.style.display = 'block';
+                comboOverlay.classList.add('fade-in');
                 
                 setTimeout(() => {
-                    runeElement.style.transform = '';
-                    runeElement.style.boxShadow = '';
-                }, 300);
-                
-                // Здесь будет логика слияния рун
-                console.log(`Выбрана руна: ${runeElement.dataset.type}`);
+                    comboOverlay.classList.remove('fade-in');
+                    comboOverlay.style.display = 'none';
+                }, 2000);
             }
-            
-            // Инициализация игры
-            createGameBoard();
-            
-            // Обработчики кнопок
-            document.querySelector('.btn-energy').addEventListener('click', function() {
-                alert('Получить энергию можно за выполнение заданий или в магазине!');
-            });
-            
-            document.querySelector('.btn-shop').addEventListener('click', function() {
-                alert('Добро пожаловать в магазин эпических предметов!');
-            });
-            
-            document.querySelector('.btn-help').addEventListener('click', function() {
-                alert('Собирайте 3+ одинаковых руны в ряд для создания элементалей!');
-            });
-            
-            // Обработчики предметов
-            document.querySelectorAll('.item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const itemName = this.querySelector('.item-name').textContent;
-                    const itemCost = this.querySelector('.item-cost').textContent;
-                    alert(`Вы хотите приобрести "${itemName}" за ${itemCost}?`);
-                });
-            });
+
+            // Добавить энергию
+            function addEnergy(amount) {
+                gameState.energy += amount;
+                updateUI();
+            }
+
+            // Обновление интерфейса
+            function updateUI() {
+                energyValue.textContent = gameState.energy;
+                levelValue.textContent = gameState.level;
+                scoreValue.textContent = gameState.score;
+            }
+
+            // Изменение размера canvas
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                const size = Math.min(container.offsetWidth, 500);
+                
+                canvas.width = size;
+                canvas.height = size;
+                
+                gameState.cellSize = size / gameState.boardSize;
+                
+                drawGame();
+            }
+
+            // Показать уведомление VK
+            function showVKNotification(message) {
+                // В реальном приложении используйте VKWebAppShowNotification
+                alert(message);
+            }
+
+            // Показать справку
+            function showHelp() {
+                const helpText = `🎮 КАК ИГРАТЬ:
+
+• Нажимайте на руны, чтобы выбрать их
+• Обменивайтесь соседними рунами местами
+• Собирайте 3+ одинаковых руны в ряд
+• Создавайте комбо для бонусных очков
+• Используйте энергию для покупки предметов
+
+⚡ СИСТЕМА ЭЛЕМЕНТОВ:
+
+${runeTypes.map(rune => 
+    `${rune.symbol} ${rune.name}: ${rune.description}`
+).join('\n')}`;
+
+                showVKNotification(helpText);
+            }
+
+            // Инициализация
+            initGame();
         });
+
+        // Добавляем поддержку rounded rect для Canvas
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.beginPath();
+            this.moveTo(x + r, y);
+            this.arcTo(x + w, y, x + w, y + h, r);
+            this.arcTo(x + w, y + h, x, y + h, r);
+            this.arcTo(x, y + h, x, y, r);
+            this.arcTo(x, y, x + w, y, r);
+            this.closePath();
+            return this;
+        };
     </script>
 </body>
 </html>
