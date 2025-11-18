@@ -3,967 +3,416 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>❄️ Путь к Новому Году ✨</title>
+    <title>Элементали: Слияние Стихий</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         body {
-            background: linear-gradient(135deg, #1a237e 0%, #311b92 50%, #4a148c 100%);
-            color: white;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
-            overflow-x: hidden;
+            padding: 10px;
         }
-        
-        .game-container {
-            max-width: 800px;
+
+        .container {
             width: 100%;
-            text-align: center;
-        }
-        
-        /* Стили для главного экрана */
-        .main-screen {
-            position: relative;
-            height: 400px;
-            border-radius: 20px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        
-        .main-background {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), 
-                        url('https://i.imgur.com/9pJYq3E.jpg');
-            background-size: cover;
-            background-position: center;
-            transition: all 1s ease;
-        }
-        
-        .main-content {
-            position: relative;
-            z-index: 2;
-            padding: 40px 20px;
-            height: 100%;
+            max-width: 500px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            gap: 15px;
         }
-        
-        .game-title {
-            font-size: 48px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px rgba(255,215,0,0.8);
-            color: #ffd700;
-            animation: glow 2s infinite alternate;
-        }
-        
-        @keyframes glow {
-            from { text-shadow: 0 0 10px rgba(255,215,0,0.5); }
-            to { text-shadow: 0 0 30px rgba(255,215,0,1), 0 0 40px rgba(255,215,0,0.8); }
-        }
-        
-        .start-button {
-            padding: 15px 40px;
-            font-size: 20px;
-            background: linear-gradient(45deg, #ff6b6b, #ff5252);
-            border: none;
-            border-radius: 50px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(255,107,107,0.4);
-            margin-top: 20px;
-        }
-        
-        .start-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(255,107,107,0.6);
-        }
-        
-        /* Стили для игрового интерфейса */
-        .game-ui {
-            display: none;
+
+        header {
+            text-align: center;
+            padding: 15px 0;
             width: 100%;
         }
-        
-        .game-header {
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            background: linear-gradient(to right, #ff9a00, #ff2e63);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #a0a0c0;
+        }
+
+        .game-info {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            background: rgba(0,0,0,0.5);
-            padding: 15px;
-            border-radius: 15px;
-            border: 2px solid #ffd700;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px 15px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
-        .player-stats {
-            display: flex;
-            gap: 20px;
-        }
-        
-        .stat-item {
+
+        .energy-container, .level-container, .score-container {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-        
-        .stat-label {
-            font-size: 12px;
-            opacity: 0.8;
+
+        .energy-container {
+            color: #ffcc00;
         }
-        
-        .stat-value {
-            font-size: 20px;
+
+        .level-container {
+            color: #4cd964;
+        }
+
+        .score-container {
+            color: #5ac8fa;
+        }
+
+        .value {
+            font-size: 1.5rem;
             font-weight: bold;
-            color: #ffd700;
         }
-        
-        .progress-bar {
-            width: 100%;
-            height: 10px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 5px;
-            margin-top: 5px;
-            overflow: hidden;
+
+        .label {
+            font-size: 0.8rem;
+            margin-top: 3px;
         }
-        
-        .progress-fill {
-            height: 100%;
-            border-radius: 5px;
-            transition: width 0.5s;
-        }
-        
-        .energy-fill {
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-        }
-        
-        .level-fill {
-            background: linear-gradient(90deg, #ff6b6b, #ff5252);
-        }
-        
-        .vk-coins {
-            background: linear-gradient(45deg, #ffd700, #ffed4e);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        /* Стили для карты путешествия */
-        .journey-map {
-            position: relative;
-            height: 200px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 15px;
-            margin-bottom: 20px;
-            overflow: hidden;
-            border: 2px solid #ffd700;
-        }
-        
-        .map-background {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-size: cover;
-            background-position: center;
-            opacity: 0.7;
-        }
-        
-        .map-path {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            width: 100%;
-            height: 10px;
-            background: rgba(255,215,0,0.5);
-            transform: translateY(-50%);
-        }
-        
-        .map-locations {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        
-        .location {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.9);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            transform: translate(-50%, -50%);
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-        }
-        
-        .location:hover {
-            transform: translate(-50%, -50%) scale(1.2);
-        }
-        
-        .location.current {
-            background: #ffd700;
-            box-shadow: 0 0 20px rgba(255,215,0,0.8);
-        }
-        
-        .location.completed {
-            background: #4CAF50;
-        }
-        
-        .location.locked {
-            background: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        /* Стили для игрового поля */
-        .game-board-container {
-            background: rgba(0,0,0,0.3);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            border: 2px solid #ffd700;
-        }
-        
+
         .game-board {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-gap: 5px;
-            margin: 0 auto;
-            max-width: 400px;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 5px;
+            padding: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         }
-        
-        .cell {
-            aspect-ratio: 1/1;
+
+        .rune {
             border-radius: 8px;
             display: flex;
-            align-items: center;
             justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: rgba(255,255,255,0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cell.selected {
-            transform: scale(0.9);
-            box-shadow: 0 0 15px #ffd700;
-        }
-        
-        /* Стили для магазина */
-        .shop-section {
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .shop-title {
-            margin-bottom: 15px;
-            color: #ffd700;
-            display: flex;
-            justify-content: space-between;
             align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+            user-select: none;
         }
-        
-        .shop-items {
+
+        .rune:hover {
+            transform: scale(1.05);
+        }
+
+        .rune.fire {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: #fff;
+        }
+
+        .rune.water {
+            background: linear-gradient(135deg, #2193b0, #6dd5ed);
+            color: #fff;
+        }
+
+        .rune.earth {
+            background: linear-gradient(135deg, #834d9b, #d04ed6);
+            color: #fff;
+        }
+
+        .rune.air {
+            background: linear-gradient(135deg, #56ccf2, #2f80ed);
+            color: #fff;
+        }
+
+        .rune.light {
+            background: linear-gradient(135deg, #f9d423, #ff4e50);
+            color: #fff;
+        }
+
+        .rune.dark {
+            background: linear-gradient(135deg, #434343, #000000);
+            color: #fff;
+        }
+
+        .rune.lava {
+            background: linear-gradient(135deg, #ff8c00, #ff2e00);
+            color: #fff;
+        }
+
+        .rune.mist {
+            background: linear-gradient(135deg, #8e9eab, #eef2f3);
+            color: #333;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-energy {
+            background: linear-gradient(135deg, #ffcc00, #ff9500);
+            color: #fff;
+        }
+
+        .btn-shop {
+            background: linear-gradient(135deg, #5ac8fa, #007aff);
+            color: #fff;
+        }
+
+        .btn-help {
+            background: linear-gradient(135deg, #4cd964, #34c759);
+            color: #fff;
+        }
+
+        .epic-items {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .epic-items h2 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #ffcc00;
+        }
+
+        .items-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
         }
-        
-        .shop-item {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
+
+        .item {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
             padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .shop-item:hover {
-            background: rgba(255,255,255,0.2);
-            transform: translateY(-3px);
-        }
-        
-        .item-icon {
-            font-size: 30px;
-            margin-bottom: 5px;
-        }
-        
-        .item-price {
-            color: #ffd700;
-            font-weight: bold;
-            margin-top: 5px;
-        }
-        
-        /* Стили для календаря */
-        .calendar-section {
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .calendar-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .calendar-days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
             gap: 5px;
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
-        
-        .calendar-day {
-            aspect-ratio: 1/1;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            position: relative;
+
+        .item:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
         }
-        
-        .calendar-day.completed {
-            background: rgba(76,175,80,0.3);
-            border: 1px solid #4CAF50;
+
+        .item-icon {
+            font-size: 1.8rem;
         }
-        
-        .calendar-day.today {
-            background: rgba(255,215,0,0.3);
-            border: 1px solid #ffd700;
+
+        .item-name {
+            font-size: 0.8rem;
+            text-align: center;
         }
-        
-        .day-reward {
-            font-size: 12px;
-            color: #ffd700;
-            margin-top: 2px;
+
+        .item-cost {
+            font-size: 0.7rem;
+            color: #ffcc00;
         }
-        
-        /* Анимации */
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        
-        .rare-item {
-            animation: pulse 1s infinite;
-            box-shadow: 0 0 15px rgba(255,215,0,0.8);
-        }
-        
-        /* Снежинки */
-        .snowflakes {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 100;
-        }
-        
-        .snowflake {
-            position: absolute;
-            color: white;
-            font-size: 20px;
-            opacity: 0.8;
-            animation: fall linear infinite;
-        }
-        
-        @keyframes fall {
-            to {
-                transform: translateY(100vh);
+
+        @media (min-width: 768px) {
+            .container {
+                max-width: 700px;
+            }
+            
+            .game-board {
+                grid-template-columns: repeat(8, 1fr);
+                grid-template-rows: repeat(8, 1fr);
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .items-grid {
+                grid-template-columns: repeat(6, 1fr);
             }
         }
-        
-        /* Символы для игры */
-        .snowman::before { content: "⛄"; }
-        .gift::before { content: "🎁"; }
-        .tree::before { content: "🎄"; }
-        .star::before { content: "⭐"; }
-        .bell::before { content: "🔔"; }
-        .sock::before { content: "🧦"; }
-        .candy::before { content: "🍬"; }
-        .deer::before { content: "🦌"; }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <!-- Главный экран -->
-        <div class="main-screen" id="main-screen">
-            <div class="main-background" id="main-background"></div>
-            <div class="main-content">
-                <h1 class="game-title">❄️ Путь к Новому Году ✨</h1>
-                <p>Помоги Деду Морозу добраться до Нового Года!</p>
-                <p>Собирай украшения, выполняй задания и открывай новые локации</p>
-                <button class="start-button" id="start-button">Начать путешествие</button>
+    <div class="container">
+        <header>
+            <h1>Элементали: Слияние Стихий</h1>
+            <p class="subtitle">Собирай руны, создавай элементалей и побеждай!</p>
+        </header>
+        
+        <div class="game-info">
+            <div class="energy-container">
+                <div class="value">150</div>
+                <div class="label">ЭНЕРГИЯ</div>
+            </div>
+            <div class="level-container">
+                <div class="value">5</div>
+                <div class="label">УРОВЕНЬ</div>
+            </div>
+            <div class="score-container">
+                <div class="value">2450</div>
+                <div class="label">ОЧКИ</div>
             </div>
         </div>
         
-        <!-- Игровой интерфейс -->
-        <div class="game-ui" id="game-ui">
-            <!-- Шапка игры -->
-            <div class="game-header">
-                <div class="player-stats">
-                    <div class="stat-item">
-                        <div class="stat-label">ЭНЕРГИЯ</div>
-                        <div class="stat-value" id="energy-value">100/100</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill energy-fill" id="energy-fill" style="width: 100%"></div>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">УРОВЕНЬ</div>
-                        <div class="stat-value" id="level-value">1</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill level-fill" id="level-fill" style="width: 0%"></div>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">УКРАШЕНИЯ</div>
-                        <div class="stat-value" id="decorations-value">0/50</div>
-                    </div>
+        <div class="game-board">
+            <!-- Руны будут генерироваться JavaScript -->
+        </div>
+        
+        <div class="controls">
+            <button class="btn-energy">ЭНЕРГИЯ</button>
+            <button class="btn-shop">МАГАЗИН</button>
+            <button class="btn-help">ПОМОЩЬ</button>
+        </div>
+        
+        <div class="epic-items">
+            <h2>ЭПИЧЕСКИЕ ПРЕДМЕТЫ</h2>
+            <div class="items-grid">
+                <div class="item">
+                    <div class="item-icon">🔥</div>
+                    <div class="item-name">Огненный шар</div>
+                    <div class="item-cost">50 энергии</div>
                 </div>
-                <div class="vk-coins">
-                    <span>🪙</span>
-                    <span id="coins-value">150</span>
+                <div class="item">
+                    <div class="item-icon">💧</div>
+                    <div class="item-name">Водный щит</div>
+                    <div class="item-cost">75 энергии</div>
                 </div>
-            </div>
-            
-            <!-- Карта путешествия -->
-            <div class="journey-map">
-                <div class="map-background" id="map-background"></div>
-                <div class="map-path"></div>
-                <div class="map-locations" id="map-locations">
-                    <!-- Локации будут добавлены через JS -->
+                <div class="item">
+                    <div class="item-icon">🌪️</div>
+                    <div class="item-name">Вихрь</div>
+                    <div class="item-cost">100 энергии</div>
                 </div>
-            </div>
-            
-            <!-- Игровое поле -->
-            <div class="game-board-container">
-                <h3 id="location-name">Лесная поляна</h3>
-                <div class="game-board" id="game-board">
-                    <!-- Игровое поле будет создано через JS -->
+                <div class="item">
+                    <div class="item-icon">⚡</div>
+                    <div class="item-name">Молния</div>
+                    <div class="item-cost">120 энергии</div>
                 </div>
-            </div>
-            
-            <!-- Магазин -->
-            <div class="shop-section">
-                <div class="shop-title">
-                    <h3>🎁 Магазин украшений</h3>
-                    <span>Ваши монеты: <span id="shop-coins">150</span> 🪙</span>
+                <div class="item">
+                    <div class="item-icon">💎</div>
+                    <div class="item-name">Кристалл</div>
+                    <div class="item-cost">150 энергии</div>
                 </div>
-                <div class="shop-items">
-                    <div class="shop-item" data-item="energy" data-price="50">
-                        <div class="item-icon">⚡</div>
-                        <div class="item-name">+20 энергии</div>
-                        <div class="item-price">50 🪙</div>
-                    </div>
-                    <div class="shop-item" data-item="hint" data-price="30">
-                        <div class="item-icon">💡</div>
-                        <div class="item-name">3 подсказки</div>
-                        <div class="item-price">30 🪙</div>
-                    </div>
-                    <div class="shop-item" data-item="decoration" data-price="100">
-                        <div class="item-icon">🎄</div>
-                        <div class="item-name">Редкое украшение</div>
-                        <div class="item-price">100 🪙</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Календарь -->
-            <div class="calendar-section">
-                <div class="calendar-title">
-                    <h3>📅 Новогодний календарь</h3>
-                    <span id="calendar-progress">1/31</span>
-                </div>
-                <div class="calendar-days" id="calendar-days">
-                    <!-- Дни календаря будут добавлены через JS -->
+                <div class="item">
+                    <div class="item-icon">🌀</div>
+                    <div class="item-name">Портал</div>
+                    <div class="item-cost">200 энергии</div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Снежинки -->
-    <div class="snowflakes" id="snowflakes"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Создание снежинок
-            const snowflakesContainer = document.getElementById('snowflakes');
-            for (let i = 0; i < 50; i++) {
-                const snowflake = document.createElement('div');
-                snowflake.className = 'snowflake';
-                snowflake.innerHTML = '❄';
-                snowflake.style.left = Math.random() * 100 + '%';
-                snowflake.style.animationDuration = (Math.random() * 5 + 5) + 's';
-                snowflake.style.animationDelay = Math.random() * 5 + 's';
-                snowflake.style.fontSize = (Math.random() * 10 + 10) + 'px';
-                snowflakesContainer.appendChild(snowflake);
-            }
-            
-            // Основные игровые переменные
-            let gameState = {
-                energy: 100,
-                maxEnergy: 100,
-                level: 1,
-                levelProgress: 0,
-                decorations: 0,
-                maxDecorations: 50,
-                coins: 150,
-                currentLocation: 1,
-                locations: [],
-                calendarDays: [],
-                currentDay: 1,
-                totalDays: 31,
-                rareItemsFound: 0
+            const gameBoard = document.querySelector('.game-board');
+            const runeTypes = ['fire', 'water', 'earth', 'air', 'light', 'dark', 'lava', 'mist'];
+            const runeSymbols = {
+                'fire': '🔥',
+                'water': '💧',
+                'earth': '🌍',
+                'air': '💨',
+                'light': '✨',
+                'dark': '🌑',
+                'lava': '🌋',
+                'mist': '🌫️'
             };
             
-            // Локации путешествия
-            const locationsData = [
-                { id: 1, name: "Лесная поляна", background: "forest", x: 10 },
-                { id: 2, name: "Снежная деревня", background: "village", x: 25 },
-                { id: 3, name: "Ледяное озеро", background: "lake", x: 40 },
-                { id: 4, name: "Северный полюс", background: "northpole", x: 55 },
-                { id: 5, name: "Волшебный лес", background: "magicforest", x: 70 },
-                { id: 6, name: "Новогодний город", background: "city", x: 85 }
-            ];
-            
-            // Элементы DOM
-            const mainScreen = document.getElementById('main-screen');
-            const gameUI = document.getElementById('game-ui');
-            const startButton = document.getElementById('start-button');
-            const mainBackground = document.getElementById('main-background');
-            const mapBackground = document.getElementById('map-background');
-            const mapLocations = document.getElementById('map-locations');
-            const gameBoard = document.getElementById('game-board');
-            const locationName = document.getElementById('location-name');
-            const energyValue = document.getElementById('energy-value');
-            const energyFill = document.getElementById('energy-fill');
-            const levelValue = document.getElementById('level-value');
-            const levelFill = document.getElementById('level-fill');
-            const decorationsValue = document.getElementById('decorations-value');
-            const coinsValue = document.getElementById('coins-value');
-            const shopCoins = document.getElementById('shop-coins');
-            const calendarDaysElement = document.getElementById('calendar-days');
-            const calendarProgress = document.getElementById('calendar-progress');
-            
-            // Инициализация игры
-            function initGame() {
-                // Создаем локации
-                initLocations();
-                
-                // Создаем календарь
-                initCalendar();
-                
-                // Создаем игровое поле
-                createGameBoard();
-                
-                // Обновляем интерфейс
-                updateUI();
-                
-                // Запускаем восстановление энергии
-                startEnergyRegeneration();
-                
-                // Запускаем смену фонов
-                startBackgroundRotation();
-            }
-            
-            // Инициализация локаций
-            function initLocations() {
-                gameState.locations = locationsData.map(location => ({
-                    ...location,
-                    completed: location.id < gameState.currentLocation,
-                    locked: location.id > gameState.currentLocation
-                }));
-                renderLocations();
-            }
-            
-            // Отрисовка локаций на карте
-            function renderLocations() {
-                mapLocations.innerHTML = '';
-                gameState.locations.forEach(location => {
-                    const locationElement = document.createElement('div');
-                    locationElement.className = 'location';
-                    
-                    if (location.id === gameState.currentLocation) {
-                        locationElement.classList.add('current');
-                    } else if (location.completed) {
-                        locationElement.classList.add('completed');
-                    } else if (location.locked) {
-                        locationElement.classList.add('locked');
-                    }
-                    
-                    locationElement.style.left = `${location.x}%`;
-                    locationElement.style.top = '50%';
-                    locationElement.innerHTML = location.id === 6 ? '🎅' : '🎄';
-                    
-                    locationElement.addEventListener('click', () => {
-                        if (!location.locked) {
-                            travelToLocation(location.id);
-                        }
-                    });
-                    
-                    mapLocations.appendChild(locationElement);
-                });
-                
-                // Обновляем фон карты
-                const currentLocation = gameState.locations.find(l => l.id === gameState.currentLocation);
-                if (currentLocation) {
-                    mapBackground.style.backgroundImage = `url('https://i.imgur.com/${getBackgroundImage(currentLocation.background)}')`;
-                    locationName.textContent = currentLocation.name;
-                }
-            }
-            
-            // Получение фонового изображения
-            function getBackgroundImage(type) {
-                const backgrounds = {
-                    forest: 'aBcD1eF.jpg',
-                    village: 'xYz2aB.jpg', 
-                    lake: 'mN3oPq.jpg',
-                    northpole: 'rS4tUv.jpg',
-                    magicforest: 'wX5yZz.jpg',
-                    city: 'bC6dEf.jpg'
-                };
-                return backgrounds[type] || 'aBcD1eF.jpg';
-            }
-            
-            // Путешествие к локации
-            function travelToLocation(locationId) {
-                if (gameState.energy >= 10) {
-                    gameState.energy -= 10;
-                    gameState.currentLocation = locationId;
-                    
-                    // Помечаем предыдущую локацию как пройденную
-                    gameState.locations.forEach(location => {
-                        if (location.id < locationId) {
-                            location.completed = true;
-                        }
-                        location.locked = location.id > locationId;
-                    });
-                    
-                    renderLocations();
-                    updateUI();
-                    
-                    // Шанс найти редкий предмет (0.1%)
-                    if (Math.random() < 0.001) {
-                        findRareItem();
-                    }
-                } else {
-                    alert('Недостаточно энергии для путешествия!');
-                }
-            }
-            
-            // Находка редкого предмета
-            function findRareItem() {
-                gameState.rareItemsFound++;
-                const rareRewards = [
-                    { type: 'energy', amount: 50, message: 'Вы нашли Волшебный эликсир энергии! +50 энергии!' },
-                    { type: 'coins', amount: 500, message: 'Вы нашли Сундук с сокровищами! +500 монет!' },
-                    { type: 'decoration', amount: 5, message: 'Вы нашли Волшебный мешок с украшениями! +5 украшений!' }
-                ];
-                
-                const reward = rareRewards[Math.floor(Math.random() * rareRewards.length)];
-                
-                switch(reward.type) {
-                    case 'energy':
-                        gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + reward.amount);
-                        break;
-                    case 'coins':
-                        gameState.coins += reward.amount;
-                        break;
-                    case 'decoration':
-                        gameState.decorations = Math.min(gameState.maxDecorations, gameState.decorations + reward.amount);
-                        break;
-                }
-                
-                showMessage(reward.message, true);
-                updateUI();
-            }
-            
-            // Инициализация календаря
-            function initCalendar() {
-                gameState.calendarDays = [];
-                for (let i = 1; i <= gameState.totalDays; i++) {
-                    gameState.calendarDays.push({
-                        day: i,
-                        completed: i < gameState.currentDay,
-                        reward: getCalendarReward(i)
-                    });
-                }
-                renderCalendar();
-            }
-            
-            // Получение награды за день календаря
-            function getCalendarReward(day) {
-                const rewards = [
-                    '+10 энергии',
-                    '+25 монет', 
-                    '+1 украшение',
-                    '+2 подсказки',
-                    'Редкий предмет'
-                ];
-                
-                // Особые награды в важные дни
-                if (day === 1) return '🎁 Стартовый набор';
-                if (day === 31) return '🎉 Особый новогодний подарок';
-                if (day % 7 === 0) return '⭐ Недельный бонус';
-                
-                return rewards[Math.floor(Math.random() * rewards.length)];
-            }
-            
-            // Отрисовка календаря
-            function renderCalendar() {
-                calendarDaysElement.innerHTML = '';
-                calendarProgress.textContent = `${gameState.currentDay-1}/${gameState.totalDays}`;
-                
-                gameState.calendarDays.forEach(day => {
-                    const dayElement = document.createElement('div');
-                    dayElement.className = 'calendar-day';
-                    
-                    if (day.completed) {
-                        dayElement.classList.add('completed');
-                    } else if (day.day === gameState.currentDay) {
-                        dayElement.classList.add('today');
-                    }
-                    
-                    dayElement.innerHTML = `
-                        <div>${day.day}</div>
-                        <div class="day-reward">${day.reward}</div>
-                    `;
-                    
-                    dayElement.addEventListener('click', () => {
-                        if (day.day === gameState.currentDay && !day.completed) {
-                            completeCalendarDay(day);
-                        }
-                    });
-                    
-                    calendarDaysElement.appendChild(dayElement);
-                });
-            }
-            
-            // Завершение дня в календаре
-            function completeCalendarDay(day) {
-                day.completed = true;
-                gameState.currentDay++;
-                
-                // Выдача награды
-                let rewardMessage = `День ${day.day} завершен! Награда: ${day.reward}`;
-                
-                if (day.reward.includes('энергии')) {
-                    const amount = parseInt(day.reward.match(/\d+/)[0]);
-                    gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + amount);
-                } else if (day.reward.includes('монет')) {
-                    const amount = parseInt(day.reward.match(/\d+/)[0]);
-                    gameState.coins += amount;
-                } else if (day.reward.includes('украшение')) {
-                    gameState.decorations++;
-                } else if (day.reward === '🎁 Стартовый набор') {
-                    gameState.energy += 20;
-                    gameState.coins += 100;
-                    gameState.decorations += 3;
-                } else if (day.reward === '🎉 Особый новогодний подарок') {
-                    gameState.coins += 1000;
-                    gameState.decorations += 10;
-                }
-                
-                showMessage(rewardMessage);
-                updateUI();
-                renderCalendar();
-            }
-            
-            // Создание игрового поля
+            // Создаем игровое поле
             function createGameBoard() {
                 gameBoard.innerHTML = '';
-                const symbols = ['snowman', 'gift', 'tree', 'star', 'bell', 'sock', 'candy', 'deer'];
+                const boardSize = window.innerWidth >= 768 ? 8 : 6;
                 
-                for (let i = 0; i < 64; i++) {
-                    const cell = document.createElement('div');
-                    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-                    cell.className = `cell ${randomSymbol}`;
+                for (let i = 0; i < boardSize * boardSize; i++) {
+                    const rune = document.createElement('div');
+                    const randomType = runeTypes[Math.floor(Math.random() * 6)]; // Используем только базовые типы
                     
-                    // Шанс 0.1% на появление редкого предмета
-                    if (Math.random() < 0.001) {
-                        cell.classList.add('rare-item');
-                        cell.addEventListener('click', () => {
-                            cell.classList.remove('rare-item');
-                            findRareItem();
-                        });
-                    }
+                    rune.className = `rune ${randomType}`;
+                    rune.textContent = runeSymbols[randomType];
+                    rune.dataset.type = randomType;
                     
-                    gameBoard.appendChild(cell);
+                    rune.addEventListener('click', function() {
+                        handleRuneClick(this);
+                    });
+                    
+                    gameBoard.appendChild(rune);
                 }
             }
             
-            // Обновление интерфейса
-            function updateUI() {
-                energyValue.textContent = `${gameState.energy}/${gameState.maxEnergy}`;
-                energyFill.style.width = `${(gameState.energy / gameState.maxEnergy) * 100}%`;
-                
-                levelValue.textContent = gameState.level;
-                levelFill.style.width = `${gameState.levelProgress}%`;
-                
-                decorationsValue.textContent = `${gameState.decorations}/${gameState.maxDecorations}`;
-                
-                coinsValue.textContent = gameState.coins;
-                shopCoins.textContent = gameState.coins;
-            }
-            
-            // Восстановление энергии
-            function startEnergyRegeneration() {
-                setInterval(() => {
-                    if (gameState.energy < gameState.maxEnergy) {
-                        gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 1);
-                        updateUI();
-                    }
-                }, 60000); // 1 энергия в минуту
-            }
-            
-            // Смена фонов
-            function startBackgroundRotation() {
-                const backgrounds = [
-                    'https://i.imgur.com/9pJYq3E.jpg',
-                    'https://i.imgur.com/aBcD1eF.jpg', 
-                    'https://i.imgur.com/xYz2aB.jpg',
-                    'https://i.imgur.com/mN3oPq.jpg'
-                ];
-                let currentBg = 0;
-                
-                setInterval(() => {
-                    currentBg = (currentBg + 1) % backgrounds.length;
-                    mainBackground.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url('${backgrounds[currentBg]}')`;
-                }, 8000);
-            }
-            
-            // Показать сообщение
-            function showMessage(text, isRare = false) {
-                const message = document.createElement('div');
-                message.textContent = text;
-                message.style.position = 'fixed';
-                message.style.top = '20%';
-                message.style.left = '50%';
-                message.style.transform = 'translateX(-50%)';
-                message.style.background = isRare ? 'linear-gradient(45deg, #ffd700, #ffed4e)' : 'rgba(0,0,0,0.8)';
-                message.style.color = isRare ? '#333' : 'white';
-                message.style.padding = '15px 25px';
-                message.style.borderRadius = '10px';
-                message.style.zIndex = '1000';
-                message.style.fontSize = '18px';
-                message.style.fontWeight = 'bold';
-                message.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
-                
-                document.body.appendChild(message);
+            // Обработка клика по руне
+            function handleRuneClick(runeElement) {
+                // Добавляем анимацию выделения
+                runeElement.style.transform = 'scale(1.1)';
+                runeElement.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.7)';
                 
                 setTimeout(() => {
-                    document.body.removeChild(message);
-                }, 3000);
+                    runeElement.style.transform = '';
+                    runeElement.style.boxShadow = '';
+                }, 300);
+                
+                // Здесь будет логика слияния рун
+                console.log(`Выбрана руна: ${runeElement.dataset.type}`);
             }
             
-            // Обработчики событий
-            startButton.addEventListener('click', () => {
-                mainScreen.style.display = 'none';
-                gameUI.style.display = 'block';
-                initGame();
+            // Инициализация игры
+            createGameBoard();
+            
+            // Обработчики кнопок
+            document.querySelector('.btn-energy').addEventListener('click', function() {
+                alert('Получить энергию можно за выполнение заданий или в магазине!');
             });
             
-            // Обработчики для магазина
-            document.querySelectorAll('.shop-item').forEach(item => {
+            document.querySelector('.btn-shop').addEventListener('click', function() {
+                alert('Добро пожаловать в магазин эпических предметов!');
+            });
+            
+            document.querySelector('.btn-help').addEventListener('click', function() {
+                alert('Собирайте 3+ одинаковых руны в ряд для создания элементалей!');
+            });
+            
+            // Обработчики предметов
+            document.querySelectorAll('.item').forEach(item => {
                 item.addEventListener('click', function() {
-                    const itemType = this.dataset.item;
-                    const price = parseInt(this.dataset.price);
-                    
-                    if (gameState.coins >= price) {
-                        gameState.coins -= price;
-                        
-                        switch(itemType) {
-                            case 'energy':
-                                gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 20);
-                                showMessage('+20 энергии!');
-                                break;
-                            case 'hint':
-                                // Логика добавления подсказок
-                                showMessage('+3 подсказки!');
-                                break;
-                            case 'decoration':
-                                gameState.decorations++;
-                                showMessage('+1 редкое украшение!');
-                                break;
-                        }
-                        
-                        updateUI();
-                    } else {
-                        showMessage('Недостаточно монет!');
-                    }
+                    const itemName = this.querySelector('.item-name').textContent;
+                    const itemCost = this.querySelector('.item-cost').textContent;
+                    alert(`Вы хотите приобрести "${itemName}" за ${itemCost}?`);
                 });
-            });
-            
-            // Имитация игрового процесса "три в ряд"
-            let selectedCell = null;
-            gameBoard.addEventListener('click', function(e) {
-                if (e.target.classList.contains('cell') && gameState.energy >= 5) {
-                    if (selectedCell) {
-                        // Логика обмена ячеек
-                        gameState.energy -= 5;
-                        gameState.levelProgress += 5;
-                        
-                        if (gameState.levelProgress >= 100) {
-                            gameState.level++;
-                            gameState.levelProgress = 0;
-                            showMessage(`Поздравляем! Вы достигли уровня ${gameState.level}!`);
-                        }
-                        
-                        // Шанс 10% получить украшение за ход
-                        if (Math.random() < 0.1) {
-                            gameState.decorations++;
-                            showMessage('+1 украшение!');
-                        }
-                        
-                        selectedCell.classList.remove('selected');
-                        selectedCell = null;
-                    } else {
-                        selectedCell = e.target;
-                        selectedCell.classList.add('selected');
-                    }
-                    
-                    updateUI();
-                }
             });
         });
     </script>
