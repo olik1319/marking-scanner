@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Новогоднее Три в Ряд</title>
+    <title>❄️ Путь к Новому Году ✨</title>
     <style>
         * {
             margin: 0;
@@ -13,40 +13,389 @@
         }
         
         body {
-            background: linear-gradient(135deg, #0a2e38 0%, #1a5a6c 100%);
+            background: linear-gradient(135deg, #1a237e 0%, #311b92 50%, #4a148c 100%);
             color: white;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
+            overflow-x: hidden;
         }
         
-        .container {
-            max-width: 500px;
+        .game-container {
+            max-width: 800px;
             width: 100%;
             text-align: center;
         }
         
-        .header {
-            margin-bottom: 20px;
+        /* Стили для главного экрана */
+        .main-screen {
             position: relative;
+            height: 400px;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         
-        h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        .main-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), 
+                        url('https://i.imgur.com/9pJYq3E.jpg');
+            background-size: cover;
+            background-position: center;
+            transition: all 1s ease;
+        }
+        
+        .main-content {
+            position: relative;
+            z-index: 2;
+            padding: 40px 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .game-title {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255,215,0,0.8);
+            color: #ffd700;
+            animation: glow 2s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+            to { text-shadow: 0 0 30px rgba(255,215,0,1), 0 0 40px rgba(255,215,0,0.8); }
+        }
+        
+        .start-button {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ff5252);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(255,107,107,0.4);
+            margin-top: 20px;
+        }
+        
+        .start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255,107,107,0.6);
+        }
+        
+        /* Стили для игрового интерфейса */
+        .game-ui {
+            display: none;
+            width: 100%;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid #ffd700;
+        }
+        
+        .player-stats {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
             color: #ffd700;
         }
         
-        .snowflakes {
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s;
+        }
+        
+        .energy-fill {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+        }
+        
+        .level-fill {
+            background: linear-gradient(90deg, #ff6b6b, #ff5252);
+        }
+        
+        .vk-coins {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* Стили для карты путешествия */
+        .journey-map {
+            position: relative;
+            height: 200px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 2px solid #ffd700;
+        }
+        
+        .map-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.7;
+        }
+        
+        .map-path {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: rgba(255,215,0,0.5);
+            transform: translateY(-50%);
+        }
+        
+        .map-locations {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+        }
+        
+        .location {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+        
+        .location:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        
+        .location.current {
+            background: #ffd700;
+            box-shadow: 0 0 20px rgba(255,215,0,0.8);
+        }
+        
+        .location.completed {
+            background: #4CAF50;
+        }
+        
+        .location.locked {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        /* Стили для игрового поля */
+        .game-board-container {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #ffd700;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-gap: 5px;
+            margin: 0 auto;
+            max-width: 400px;
+        }
+        
+        .cell {
+            aspect-ratio: 1/1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cell.selected {
+            transform: scale(0.9);
+            box-shadow: 0 0 15px #ffd700;
+        }
+        
+        /* Стили для магазина */
+        .shop-section {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .shop-title {
+            margin-bottom: 15px;
+            color: #ffd700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .shop-items {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .shop-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .shop-item:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-3px);
+        }
+        
+        .item-icon {
+            font-size: 30px;
+            margin-bottom: 5px;
+        }
+        
+        .item-price {
+            color: #ffd700;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        /* Стили для календаря */
+        .calendar-section {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .calendar-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1/1;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            position: relative;
+        }
+        
+        .calendar-day.completed {
+            background: rgba(76,175,80,0.3);
+            border: 1px solid #4CAF50;
+        }
+        
+        .calendar-day.today {
+            background: rgba(255,215,0,0.3);
+            border: 1px solid #ffd700;
+        }
+        
+        .day-reward {
+            font-size: 12px;
+            color: #ffd700;
+            margin-top: 2px;
+        }
+        
+        /* Анимации */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .rare-item {
+            animation: pulse 1s infinite;
+            box-shadow: 0 0 15px rgba(255,215,0,0.8);
+        }
+        
+        /* Снежинки */
+        .snowflakes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
+            z-index: 100;
         }
         
         .snowflake {
@@ -63,259 +412,7 @@
             }
         }
         
-        .game-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px 15px;
-            border-radius: 10px;
-            border: 2px solid #ffd700;
-        }
-        
-        .info-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .info-label {
-            font-size: 14px;
-            opacity: 0.8;
-        }
-        
-        .info-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffd700;
-        }
-        
-        .energy-bar {
-            width: 100%;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-        
-        .energy-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            border-radius: 10px;
-            transition: width 0.5s;
-        }
-        
-        .game-board {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-gap: 5px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 2px solid #ffd700;
-        }
-        
-        .cell {
-            aspect-ratio: 1/1;
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cell.selected {
-            transform: scale(0.9);
-            box-shadow: 0 0 10px #ffd700;
-        }
-        
-        .cell.matched {
-            animation: pulse 0.5s;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-        
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            background: #ff6b6b;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            flex: 1;
-        }
-        
-        button:hover {
-            background: #ff5252;
-            transform: translateY(-2px);
-        }
-        
-        button:active {
-            transform: translateY(1px);
-        }
-        
-        button:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .calendar-section {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .calendar-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .calendar-title h3 {
-            color: #ffd700;
-        }
-        
-        .calendar-days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-        }
-        
-        .calendar-day {
-            aspect-ratio: 1/1;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            position: relative;
-        }
-        
-        .calendar-day.completed {
-            background: rgba(76, 175, 80, 0.3);
-            border: 1px solid #4CAF50;
-        }
-        
-        .calendar-day.today {
-            background: rgba(255, 215, 0, 0.3);
-            border: 1px solid #ffd700;
-        }
-        
-        .day-number {
-            font-weight: bold;
-            margin-bottom: 2px;
-        }
-        
-        .day-reward {
-            font-size: 10px;
-            color: #ffd700;
-        }
-        
-        .tree-section {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .tree-title {
-            margin-bottom: 15px;
-            color: #ffd700;
-        }
-        
-        .tree-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        
-        .tree {
-            font-size: 80px;
-            position: relative;
-        }
-        
-        .decoration {
-            position: absolute;
-            font-size: 20px;
-            animation: glow 2s infinite alternate;
-        }
-        
-        @keyframes glow {
-            from { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)); }
-            to { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8)); }
-        }
-        
-        .tree-progress {
-            width: 100%;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-        
-        .tree-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff6b6b, #ff5252);
-            border-radius: 10px;
-            transition: width 0.5s;
-        }
-        
-        .tree-stats {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-        }
-        
-        .instructions {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: left;
-            margin-top: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .instructions h3 {
-            margin-bottom: 10px;
-            color: #ffd700;
-        }
-        
-        .instructions ul {
-            padding-left: 20px;
-        }
-        
-        .instructions li {
-            margin-bottom: 5px;
-        }
-        
-        /* Стили для элементов игры */
+        /* Символы для игры */
         .snowman::before { content: "⛄"; }
         .gift::before { content: "🎁"; }
         .tree::before { content: "🎄"; }
@@ -324,141 +421,108 @@
         .sock::before { content: "🧦"; }
         .candy::before { content: "🍬"; }
         .deer::before { content: "🦌"; }
-        
-        /* Анимация для новых элементов */
-        @keyframes appear {
-            from { transform: scale(0); }
-            to { transform: scale(1); }
-        }
-        
-        .cell.new {
-            animation: appear 0.3s;
-        }
-        
-        /* Анимация для исчезающих элементов */
-        @keyframes disappear {
-            from { transform: scale(1); opacity: 1; }
-            to { transform: scale(1.5); opacity: 0; }
-        }
-        
-        .cell.removing {
-            animation: disappear 0.3s forwards;
-        }
-        
-        /* Стили для бонусов */
-        .bonus {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 30px;
-            z-index: 10;
-            opacity: 0;
-            animation: bonus-appear 1s forwards;
-        }
-        
-        @keyframes bonus-appear {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-        
-        /* Адаптивность */
-        @media (max-width: 500px) {
-            .game-board {
-                grid-template-columns: repeat(8, 1fr);
-                grid-gap: 3px;
-            }
-            
-            .cell {
-                font-size: 20px;
-            }
-            
-            h1 {
-                font-size: 24px;
-            }
-            
-            .info-value {
-                font-size: 20px;
-            }
-            
-            .calendar-days {
-                grid-template-columns: repeat(7, 1fr);
-            }
-            
-            .tree {
-                font-size: 60px;
-            }
-        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎄 Новогоднее Три в Ряд 🎅</h1>
-            <div class="snowflakes" id="snowflakes"></div>
+    <div class="game-container">
+        <!-- Главный экран -->
+        <div class="main-screen" id="main-screen">
+            <div class="main-background" id="main-background"></div>
+            <div class="main-content">
+                <h1 class="game-title">❄️ Путь к Новому Году ✨</h1>
+                <p>Помоги Деду Морозу добраться до Нового Года!</p>
+                <p>Собирай украшения, выполняй задания и открывай новые локации</p>
+                <button class="start-button" id="start-button">Начать путешествие</button>
+            </div>
         </div>
         
-        <div class="game-info">
-            <div class="info-item">
-                <div class="info-label">ОЧКИ</div>
-                <div class="info-value" id="score">0</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">ЭНЕРГИЯ</div>
-                <div class="info-value" id="energy">100</div>
-                <div class="energy-bar">
-                    <div class="energy-fill" id="energy-fill" style="width: 100%"></div>
+        <!-- Игровой интерфейс -->
+        <div class="game-ui" id="game-ui">
+            <!-- Шапка игры -->
+            <div class="game-header">
+                <div class="player-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">ЭНЕРГИЯ</div>
+                        <div class="stat-value" id="energy-value">100/100</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill energy-fill" id="energy-fill" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">УРОВЕНЬ</div>
+                        <div class="stat-value" id="level-value">1</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill level-fill" id="level-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">УКРАШЕНИЯ</div>
+                        <div class="stat-value" id="decorations-value">0/50</div>
+                    </div>
+                </div>
+                <div class="vk-coins">
+                    <span>🪙</span>
+                    <span id="coins-value">150</span>
                 </div>
             </div>
-            <div class="info-item">
-                <div class="info-label">УКРАШЕНИЯ</div>
-                <div class="info-value" id="decorations">0/10</div>
+            
+            <!-- Карта путешествия -->
+            <div class="journey-map">
+                <div class="map-background" id="map-background"></div>
+                <div class="map-path"></div>
+                <div class="map-locations" id="map-locations">
+                    <!-- Локации будут добавлены через JS -->
+                </div>
             </div>
-        </div>
-        
-        <div class="game-board" id="board"></div>
-        
-        <div class="controls">
-            <button id="restart">Начать заново</button>
-            <button id="hint">Подсказка (3)</button>
-            <button id="energy-boost">+10 энергии (100 очков)</button>
-        </div>
-        
-        <div class="calendar-section">
-            <div class="calendar-title">
-                <h3>🎅 Новогодний календарь</h3>
-                <span id="calendar-progress">5/24</span>
+            
+            <!-- Игровое поле -->
+            <div class="game-board-container">
+                <h3 id="location-name">Лесная поляна</h3>
+                <div class="game-board" id="game-board">
+                    <!-- Игровое поле будет создано через JS -->
+                </div>
             </div>
-            <div class="calendar-days" id="calendar-days"></div>
-        </div>
-        
-        <div class="tree-section">
-            <h3 class="tree-title">🎄 Украсьте ёлку!</h3>
-            <div class="tree-container">
-                <div class="tree" id="tree">🎄</div>
+            
+            <!-- Магазин -->
+            <div class="shop-section">
+                <div class="shop-title">
+                    <h3>🎁 Магазин украшений</h3>
+                    <span>Ваши монеты: <span id="shop-coins">150</span> 🪙</span>
+                </div>
+                <div class="shop-items">
+                    <div class="shop-item" data-item="energy" data-price="50">
+                        <div class="item-icon">⚡</div>
+                        <div class="item-name">+20 энергии</div>
+                        <div class="item-price">50 🪙</div>
+                    </div>
+                    <div class="shop-item" data-item="hint" data-price="30">
+                        <div class="item-icon">💡</div>
+                        <div class="item-name">3 подсказки</div>
+                        <div class="item-price">30 🪙</div>
+                    </div>
+                    <div class="shop-item" data-item="decoration" data-price="100">
+                        <div class="item-icon">🎄</div>
+                        <div class="item-name">Редкое украшение</div>
+                        <div class="item-price">100 🪙</div>
+                    </div>
+                </div>
             </div>
-            <div class="tree-progress">
-                <div class="tree-progress-fill" id="tree-progress" style="width: 0%"></div>
+            
+            <!-- Календарь -->
+            <div class="calendar-section">
+                <div class="calendar-title">
+                    <h3>📅 Новогодний календарь</h3>
+                    <span id="calendar-progress">1/31</span>
+                </div>
+                <div class="calendar-days" id="calendar-days">
+                    <!-- Дни календаря будут добавлены через JS -->
+                </div>
             </div>
-            <div class="tree-stats">
-                <span>Украшено: <span id="decorations-count">0</span>/10</span>
-                <span>Осталось: <span id="decorations-left">10</span></span>
-            </div>
-        </div>
-        
-        <div class="instructions">
-            <h3>Как играть:</h3>
-            <ul>
-                <li>Находите и соединяйте 3 или более одинаковых новогодних символа в ряд</li>
-                <li>Каждый ход тратит 5 единиц энергии</li>
-                <li>Собирайте украшения для ёлки, выполняя ежедневные задания</li>
-                <li>Завершите все 24 дня новогоднего календаря</li>
-                <li>Украсьте ёлку 10 разными украшениями для победы</li>
-                <li>Энергия восстанавливается со временем (1 ед./мин)</li>
-            </ul>
         </div>
     </div>
+    
+    <!-- Снежинки -->
+    <div class="snowflakes" id="snowflakes"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -475,471 +539,432 @@
                 snowflakesContainer.appendChild(snowflake);
             }
             
-            // Игровые переменные
-            let score = 0;
-            let energy = 100;
-            let maxEnergy = 100;
-            let decorations = 0;
-            let maxDecorations = 10;
-            let hints = 3;
-            let selectedCell = null;
-            let board = [];
-            const symbols = ['snowman', 'gift', 'tree', 'star', 'bell', 'sock', 'candy', 'deer'];
-            const boardSize = 8;
+            // Основные игровые переменные
+            let gameState = {
+                energy: 100,
+                maxEnergy: 100,
+                level: 1,
+                levelProgress: 0,
+                decorations: 0,
+                maxDecorations: 50,
+                coins: 150,
+                currentLocation: 1,
+                locations: [],
+                calendarDays: [],
+                currentDay: 1,
+                totalDays: 31,
+                rareItemsFound: 0
+            };
             
-            // Календарь
-            let calendarDays = [];
-            let currentDay = 1;
-            const totalDays = 24;
+            // Локации путешествия
+            const locationsData = [
+                { id: 1, name: "Лесная поляна", background: "forest", x: 10 },
+                { id: 2, name: "Снежная деревня", background: "village", x: 25 },
+                { id: 3, name: "Ледяное озеро", background: "lake", x: 40 },
+                { id: 4, name: "Северный полюс", background: "northpole", x: 55 },
+                { id: 5, name: "Волшебный лес", background: "magicforest", x: 70 },
+                { id: 6, name: "Новогодний город", background: "city", x: 85 }
+            ];
             
             // Элементы DOM
-            const scoreElement = document.getElementById('score');
-            const energyElement = document.getElementById('energy');
-            const energyFillElement = document.getElementById('energy-fill');
-            const decorationsElement = document.getElementById('decorations');
-            const boardElement = document.getElementById('board');
-            const restartButton = document.getElementById('restart');
-            const hintButton = document.getElementById('hint');
-            const energyBoostButton = document.getElementById('energy-boost');
+            const mainScreen = document.getElementById('main-screen');
+            const gameUI = document.getElementById('game-ui');
+            const startButton = document.getElementById('start-button');
+            const mainBackground = document.getElementById('main-background');
+            const mapBackground = document.getElementById('map-background');
+            const mapLocations = document.getElementById('map-locations');
+            const gameBoard = document.getElementById('game-board');
+            const locationName = document.getElementById('location-name');
+            const energyValue = document.getElementById('energy-value');
+            const energyFill = document.getElementById('energy-fill');
+            const levelValue = document.getElementById('level-value');
+            const levelFill = document.getElementById('level-fill');
+            const decorationsValue = document.getElementById('decorations-value');
+            const coinsValue = document.getElementById('coins-value');
+            const shopCoins = document.getElementById('shop-coins');
             const calendarDaysElement = document.getElementById('calendar-days');
-            const calendarProgressElement = document.getElementById('calendar-progress');
-            const treeElement = document.getElementById('tree');
-            const treeProgressElement = document.getElementById('tree-progress');
-            const decorationsCountElement = document.getElementById('decorations-count');
-            const decorationsLeftElement = document.getElementById('decorations-left');
+            const calendarProgress = document.getElementById('calendar-progress');
             
             // Инициализация игры
             function initGame() {
-                score = 0;
-                energy = 100;
-                decorations = 0;
-                hints = 3;
-                currentDay = 1;
+                // Создаем локации
+                initLocations();
+                
+                // Создаем календарь
                 initCalendar();
+                
+                // Создаем игровое поле
+                createGameBoard();
+                
+                // Обновляем интерфейс
                 updateUI();
-                createBoard();
-                renderBoard();
-                updateTree();
                 
                 // Запускаем восстановление энергии
                 startEnergyRegeneration();
+                
+                // Запускаем смену фонов
+                startBackgroundRotation();
+            }
+            
+            // Инициализация локаций
+            function initLocations() {
+                gameState.locations = locationsData.map(location => ({
+                    ...location,
+                    completed: location.id < gameState.currentLocation,
+                    locked: location.id > gameState.currentLocation
+                }));
+                renderLocations();
+            }
+            
+            // Отрисовка локаций на карте
+            function renderLocations() {
+                mapLocations.innerHTML = '';
+                gameState.locations.forEach(location => {
+                    const locationElement = document.createElement('div');
+                    locationElement.className = 'location';
+                    
+                    if (location.id === gameState.currentLocation) {
+                        locationElement.classList.add('current');
+                    } else if (location.completed) {
+                        locationElement.classList.add('completed');
+                    } else if (location.locked) {
+                        locationElement.classList.add('locked');
+                    }
+                    
+                    locationElement.style.left = `${location.x}%`;
+                    locationElement.style.top = '50%';
+                    locationElement.innerHTML = location.id === 6 ? '🎅' : '🎄';
+                    
+                    locationElement.addEventListener('click', () => {
+                        if (!location.locked) {
+                            travelToLocation(location.id);
+                        }
+                    });
+                    
+                    mapLocations.appendChild(locationElement);
+                });
+                
+                // Обновляем фон карты
+                const currentLocation = gameState.locations.find(l => l.id === gameState.currentLocation);
+                if (currentLocation) {
+                    mapBackground.style.backgroundImage = `url('https://i.imgur.com/${getBackgroundImage(currentLocation.background)}')`;
+                    locationName.textContent = currentLocation.name;
+                }
+            }
+            
+            // Получение фонового изображения
+            function getBackgroundImage(type) {
+                const backgrounds = {
+                    forest: 'aBcD1eF.jpg',
+                    village: 'xYz2aB.jpg', 
+                    lake: 'mN3oPq.jpg',
+                    northpole: 'rS4tUv.jpg',
+                    magicforest: 'wX5yZz.jpg',
+                    city: 'bC6dEf.jpg'
+                };
+                return backgrounds[type] || 'aBcD1eF.jpg';
+            }
+            
+            // Путешествие к локации
+            function travelToLocation(locationId) {
+                if (gameState.energy >= 10) {
+                    gameState.energy -= 10;
+                    gameState.currentLocation = locationId;
+                    
+                    // Помечаем предыдущую локацию как пройденную
+                    gameState.locations.forEach(location => {
+                        if (location.id < locationId) {
+                            location.completed = true;
+                        }
+                        location.locked = location.id > locationId;
+                    });
+                    
+                    renderLocations();
+                    updateUI();
+                    
+                    // Шанс найти редкий предмет (0.1%)
+                    if (Math.random() < 0.001) {
+                        findRareItem();
+                    }
+                } else {
+                    alert('Недостаточно энергии для путешествия!');
+                }
+            }
+            
+            // Находка редкого предмета
+            function findRareItem() {
+                gameState.rareItemsFound++;
+                const rareRewards = [
+                    { type: 'energy', amount: 50, message: 'Вы нашли Волшебный эликсир энергии! +50 энергии!' },
+                    { type: 'coins', amount: 500, message: 'Вы нашли Сундук с сокровищами! +500 монет!' },
+                    { type: 'decoration', amount: 5, message: 'Вы нашли Волшебный мешок с украшениями! +5 украшений!' }
+                ];
+                
+                const reward = rareRewards[Math.floor(Math.random() * rareRewards.length)];
+                
+                switch(reward.type) {
+                    case 'energy':
+                        gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + reward.amount);
+                        break;
+                    case 'coins':
+                        gameState.coins += reward.amount;
+                        break;
+                    case 'decoration':
+                        gameState.decorations = Math.min(gameState.maxDecorations, gameState.decorations + reward.amount);
+                        break;
+                }
+                
+                showMessage(reward.message, true);
+                updateUI();
             }
             
             // Инициализация календаря
             function initCalendar() {
-                calendarDays = [];
-                for (let i = 1; i <= totalDays; i++) {
-                    calendarDays.push({
+                gameState.calendarDays = [];
+                for (let i = 1; i <= gameState.totalDays; i++) {
+                    gameState.calendarDays.push({
                         day: i,
-                        completed: i < currentDay,
-                        reward: getRandomReward()
+                        completed: i < gameState.currentDay,
+                        reward: getCalendarReward(i)
                     });
                 }
                 renderCalendar();
             }
             
-            // Получение случайной награды
-            function getRandomReward() {
-                const rewards = ['+20 энергии', '+50 очков', '1 подсказка', 'украшение'];
+            // Получение награды за день календаря
+            function getCalendarReward(day) {
+                const rewards = [
+                    '+10 энергии',
+                    '+25 монет', 
+                    '+1 украшение',
+                    '+2 подсказки',
+                    'Редкий предмет'
+                ];
+                
+                // Особые награды в важные дни
+                if (day === 1) return '🎁 Стартовый набор';
+                if (day === 31) return '🎉 Особый новогодний подарок';
+                if (day % 7 === 0) return '⭐ Недельный бонус';
+                
                 return rewards[Math.floor(Math.random() * rewards.length)];
             }
             
             // Отрисовка календаря
             function renderCalendar() {
                 calendarDaysElement.innerHTML = '';
-                calendarProgressElement.textContent = `${currentDay-1}/${totalDays}`;
+                calendarProgress.textContent = `${gameState.currentDay-1}/${gameState.totalDays}`;
                 
-                for (let day of calendarDays) {
+                gameState.calendarDays.forEach(day => {
                     const dayElement = document.createElement('div');
                     dayElement.className = 'calendar-day';
                     
                     if (day.completed) {
                         dayElement.classList.add('completed');
-                    } else if (day.day === currentDay) {
+                    } else if (day.day === gameState.currentDay) {
                         dayElement.classList.add('today');
                     }
                     
                     dayElement.innerHTML = `
-                        <div class="day-number">${day.day}</div>
+                        <div>${day.day}</div>
                         <div class="day-reward">${day.reward}</div>
                     `;
                     
-                    dayElement.addEventListener('click', function() {
-                        if (day.day === currentDay && !day.completed) {
-                            completeDay(day);
+                    dayElement.addEventListener('click', () => {
+                        if (day.day === gameState.currentDay && !day.completed) {
+                            completeCalendarDay(day);
                         }
                     });
                     
                     calendarDaysElement.appendChild(dayElement);
-                }
+                });
             }
             
             // Завершение дня в календаре
-            function completeDay(day) {
+            function completeCalendarDay(day) {
                 day.completed = true;
+                gameState.currentDay++;
                 
                 // Выдача награды
-                switch(day.reward) {
-                    case '+20 энергии':
-                        energy = Math.min(maxEnergy, energy + 20);
-                        showMessage(`+20 энергии!`);
-                        break;
-                    case '+50 очков':
-                        score += 50;
-                        showMessage(`+50 очков!`);
-                        break;
-                    case '1 подсказка':
-                        hints += 1;
-                        showMessage(`+1 подсказка!`);
-                        break;
-                    case 'украшение':
-                        addDecoration();
-                        showMessage(`Новое украшение для ёлки!`);
-                        break;
+                let rewardMessage = `День ${day.day} завершен! Награда: ${day.reward}`;
+                
+                if (day.reward.includes('энергии')) {
+                    const amount = parseInt(day.reward.match(/\d+/)[0]);
+                    gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + amount);
+                } else if (day.reward.includes('монет')) {
+                    const amount = parseInt(day.reward.match(/\d+/)[0]);
+                    gameState.coins += amount;
+                } else if (day.reward.includes('украшение')) {
+                    gameState.decorations++;
+                } else if (day.reward === '🎁 Стартовый набор') {
+                    gameState.energy += 20;
+                    gameState.coins += 100;
+                    gameState.decorations += 3;
+                } else if (day.reward === '🎉 Особый новогодний подарок') {
+                    gameState.coins += 1000;
+                    gameState.decorations += 10;
                 }
                 
-                currentDay++;
+                showMessage(rewardMessage);
                 updateUI();
                 renderCalendar();
-                
-                if (currentDay > totalDays) {
-                    setTimeout(() => {
-                        alert('Поздравляем! Вы завершили новогодний календарь! 🎉');
-                    }, 500);
-                }
-            }
-            
-            // Добавление украшения на ёлку
-            function addDecoration() {
-                if (decorations < maxDecorations) {
-                    decorations++;
-                    updateTree();
-                    updateUI();
-                    
-                    if (decorations === maxDecorations) {
-                        setTimeout(() => {
-                            alert('Поздравляем! Вы полностью украсили ёлку! 🎄✨');
-                        }, 500);
-                    }
-                }
-            }
-            
-            // Обновление ёлки
-            function updateTree() {
-                treeElement.innerHTML = '🎄';
-                
-                // Добавляем украшения в зависимости от количества
-                const decorationTypes = ['🔴', '🟢', '🟡', '🔵', '⭐', '🎀', '💎', '🔔', '🌟', '❄️'];
-                
-                for (let i = 0; i < decorations; i++) {
-                    const decoration = document.createElement('div');
-                    decoration.className = 'decoration';
-                    decoration.innerHTML = decorationTypes[i];
-                    
-                    // Случайное позиционирование украшений на ёлке
-                    const left = 30 + Math.random() * 40;
-                    const top = 20 + Math.random() * 60;
-                    
-                    decoration.style.left = `${left}%`;
-                    decoration.style.top = `${top}%`;
-                    
-                    treeElement.appendChild(decoration);
-                }
-                
-                // Обновляем прогресс
-                const progress = (decorations / maxDecorations) * 100;
-                treeProgressElement.style.width = `${progress}%`;
-                decorationsCountElement.textContent = decorations;
-                decorationsLeftElement.textContent = maxDecorations - decorations;
             }
             
             // Создание игрового поля
-            function createBoard() {
-                board = [];
-                for (let row = 0; row < boardSize; row++) {
-                    board[row] = [];
-                    for (let col = 0; col < boardSize; col++) {
-                        board[row][col] = getRandomSymbol();
-                    }
-                }
+            function createGameBoard() {
+                gameBoard.innerHTML = '';
+                const symbols = ['snowman', 'gift', 'tree', 'star', 'bell', 'sock', 'candy', 'deer'];
                 
-                // Убедимся, что на поле нет готовых комбинаций
-                while (findMatches().length > 0) {
-                    for (let match of findMatches()) {
-                        board[match.row][match.col] = getRandomSymbol();
-                    }
-                }
-            }
-            
-            // Получение случайного символа
-            function getRandomSymbol() {
-                return symbols[Math.floor(Math.random() * symbols.length)];
-            }
-            
-            // Отрисовка игрового поля
-            function renderBoard() {
-                boardElement.innerHTML = '';
-                for (let row = 0; row < boardSize; row++) {
-                    for (let col = 0; col < boardSize; col++) {
-                        const cell = document.createElement('div');
-                        cell.className = `cell ${board[row][col]}`;
-                        cell.dataset.row = row;
-                        cell.dataset.col = col;
-                        cell.addEventListener('click', handleCellClick);
-                        boardElement.appendChild(cell);
-                    }
-                }
-            }
-            
-            // Обработка клика по ячейке
-            function handleCellClick(event) {
-                if (energy < 5) {
-                    showMessage("Недостаточно энергии!");
-                    return;
-                }
-                
-                const row = parseInt(event.target.dataset.row);
-                const col = parseInt(event.target.dataset.col);
-                
-                // Если ячейка уже выбрана
-                if (selectedCell) {
-                    const prevRow = parseInt(selectedCell.dataset.row);
-                    const prevCol = parseInt(selectedCell.dataset.col);
+                for (let i = 0; i < 64; i++) {
+                    const cell = document.createElement('div');
+                    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+                    cell.className = `cell ${randomSymbol}`;
                     
-                    // Проверяем, являются ли ячейки соседями
-                    const isNeighbor = 
-                        (Math.abs(row - prevRow) === 1 && col === prevCol) ||
-                        (Math.abs(col - prevCol) === 1 && row === prevRow);
-                    
-                    if (isNeighbor) {
-                        // Меняем ячейки местами
-                        swapCells(prevRow, prevCol, row, col);
-                        
-                        // Проверяем, есть ли совпадения
-                        const matches = findMatches();
-                        if (matches.length > 0) {
-                            // Если есть совпадения, обрабатываем их
-                            processMatches(matches);
-                            energy -= 5;
-                            updateUI();
-                            
-                            // Проверяем условие победы
-                            checkGameStatus();
-                        } else {
-                            // Если нет совпадений, возвращаем ячейки на место
-                            swapCells(row, col, prevRow, prevCol);
-                        }
+                    // Шанс 0.1% на появление редкого предмета
+                    if (Math.random() < 0.001) {
+                        cell.classList.add('rare-item');
+                        cell.addEventListener('click', () => {
+                            cell.classList.remove('rare-item');
+                            findRareItem();
+                        });
                     }
                     
-                    // Снимаем выделение
-                    selectedCell.classList.remove('selected');
-                    selectedCell = null;
-                } else {
-                    // Выделяем ячейку
-                    selectedCell = event.target;
-                    selectedCell.classList.add('selected');
-                }
-            }
-            
-            // Обмен ячеек местами
-            function swapCells(row1, col1, row2, col2) {
-                const temp = board[row1][col1];
-                board[row1][col1] = board[row2][col2];
-                board[row2][col2] = temp;
-                renderBoard();
-            }
-            
-            // Поиск совпадений
-            function findMatches() {
-                const matches = [];
-                
-                // Проверка по горизонтали
-                for (let row = 0; row < boardSize; row++) {
-                    for (let col = 0; col < boardSize - 2; col++) {
-                        if (board[row][col] === board[row][col+1] && 
-                            board[row][col] === board[row][col+2]) {
-                            matches.push({row, col});
-                            matches.push({row, col: col+1});
-                            matches.push({row, col: col+2});
-                        }
-                    }
-                }
-                
-                // Проверка по вертикали
-                for (let row = 0; row < boardSize - 2; row++) {
-                    for (let col = 0; col < boardSize; col++) {
-                        if (board[row][col] === board[row+1][col] && 
-                            board[row][col] === board[row+2][col]) {
-                            matches.push({row, col});
-                            matches.push({row: row+1, col});
-                            matches.push({row: row+2, col});
-                        }
-                    }
-                }
-                
-                // Убираем дубликаты
-                return matches.filter((match, index, self) => 
-                    index === self.findIndex(m => 
-                        m.row === match.row && m.col === match.col
-                    )
-                );
-            }
-            
-            // Обработка совпадений
-            function processMatches(matches) {
-                // Добавляем очки
-                const points = matches.length * 10;
-                score += points;
-                
-                // Показываем бонусные очки
-                showBonus(points, matches[0].row, matches[0].col);
-                
-                // Удаляем совпавшие элементы
-                for (let match of matches) {
-                    const cell = document.querySelector(`.cell[data-row="${match.row}"][data-col="${match.col}"]`);
-                    cell.classList.add('removing');
-                }
-                
-                // Задержка для анимации
-                setTimeout(() => {
-                    // Заменяем удаленные элементы
-                    for (let match of matches) {
-                        board[match.row][match.col] = getRandomSymbol();
-                    }
-                    
-                    // Проверяем новые совпадения
-                    const newMatches = findMatches();
-                    if (newMatches.length > 0) {
-                        // Если есть новые совпадения, обрабатываем их
-                        processMatches(newMatches);
-                    } else {
-                        // Если нет новых совпадений, обновляем поле
-                        renderBoard();
-                        
-                        // Проверяем выполнение ежедневного задания
-                        checkDailyTask();
-                    }
-                }, 300);
-            }
-            
-            // Проверка ежедневного задания
-            function checkDailyTask() {
-                // Шанс 20% на выполнение задания при успешном ходе
-                if (Math.random() < 0.2 && currentDay <= totalDays) {
-                    const day = calendarDays.find(d => d.day === currentDay);
-                    if (day && !day.completed) {
-                        completeDay(day);
-                    }
-                }
-            }
-            
-            // Показ бонусных очков
-            function showBonus(points, row, col) {
-                const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-                const bonus = document.createElement('div');
-                bonus.className = 'bonus';
-                bonus.textContent = `+${points}`;
-                bonus.style.color = '#ffd700';
-                cell.appendChild(bonus);
-                
-                setTimeout(() => {
-                    bonus.remove();
-                }, 1000);
-            }
-            
-            // Показ сообщения
-            function showMessage(text) {
-                // Создаем элемент для сообщения
-                const message = document.createElement('div');
-                message.textContent = text;
-                message.style.position = 'fixed';
-                message.style.top = '50%';
-                message.style.left = '50%';
-                message.style.transform = 'translate(-50%, -50%)';
-                message.style.background = 'rgba(0, 0, 0, 0.8)';
-                message.style.color = 'white';
-                message.style.padding = '10px 20px';
-                message.style.borderRadius = '5px';
-                message.style.zIndex = '1000';
-                message.style.fontSize = '18px';
-                
-                document.body.appendChild(message);
-                
-                setTimeout(() => {
-                    document.body.removeChild(message);
-                }, 2000);
-            }
-            
-            // Проверка статуса игры
-            function checkGameStatus() {
-                if (decorations >= maxDecorations && currentDay > totalDays) {
-                    setTimeout(() => {
-                        alert('Поздравляем! Вы полностью украсили ёлку и завершили новогодний календарь! 🎄✨');
-                    }, 500);
+                    gameBoard.appendChild(cell);
                 }
             }
             
             // Обновление интерфейса
             function updateUI() {
-                scoreElement.textContent = score;
-                energyElement.textContent = energy;
-                energyFillElement.style.width = `${(energy / maxEnergy) * 100}%`;
-                decorationsElement.textContent = `${decorations}/${maxDecorations}`;
-                hintButton.textContent = `Подсказка (${hints})`;
+                energyValue.textContent = `${gameState.energy}/${gameState.maxEnergy}`;
+                energyFill.style.width = `${(gameState.energy / gameState.maxEnergy) * 100}%`;
                 
-                // Обновляем состояние кнопок
-                energyBoostButton.disabled = score < 100;
+                levelValue.textContent = gameState.level;
+                levelFill.style.width = `${gameState.levelProgress}%`;
+                
+                decorationsValue.textContent = `${gameState.decorations}/${gameState.maxDecorations}`;
+                
+                coinsValue.textContent = gameState.coins;
+                shopCoins.textContent = gameState.coins;
             }
             
             // Восстановление энергии
             function startEnergyRegeneration() {
                 setInterval(() => {
-                    if (energy < maxEnergy) {
-                        energy = Math.min(maxEnergy, energy + 1);
+                    if (gameState.energy < gameState.maxEnergy) {
+                        gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 1);
                         updateUI();
                     }
                 }, 60000); // 1 энергия в минуту
             }
             
-            // Обработка кнопки перезапуска
-            restartButton.addEventListener('click', initGame);
+            // Смена фонов
+            function startBackgroundRotation() {
+                const backgrounds = [
+                    'https://i.imgur.com/9pJYq3E.jpg',
+                    'https://i.imgur.com/aBcD1eF.jpg', 
+                    'https://i.imgur.com/xYz2aB.jpg',
+                    'https://i.imgur.com/mN3oPq.jpg'
+                ];
+                let currentBg = 0;
+                
+                setInterval(() => {
+                    currentBg = (currentBg + 1) % backgrounds.length;
+                    mainBackground.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url('${backgrounds[currentBg]}')`;
+                }, 8000);
+            }
             
-            // Обработка кнопки подсказки
-            hintButton.addEventListener('click', function() {
-                if (hints > 0) {
-                    const matches = findMatches();
-                    if (matches.length > 0) {
-                        // Подсвечиваем случайное совпадение
-                        const randomMatch = matches[Math.floor(Math.random() * matches.length)];
-                        const cell = document.querySelector(`.cell[data-row="${randomMatch.row}"][data-col="${randomMatch.col}"]`);
-                        cell.classList.add('selected');
+            // Показать сообщение
+            function showMessage(text, isRare = false) {
+                const message = document.createElement('div');
+                message.textContent = text;
+                message.style.position = 'fixed';
+                message.style.top = '20%';
+                message.style.left = '50%';
+                message.style.transform = 'translateX(-50%)';
+                message.style.background = isRare ? 'linear-gradient(45deg, #ffd700, #ffed4e)' : 'rgba(0,0,0,0.8)';
+                message.style.color = isRare ? '#333' : 'white';
+                message.style.padding = '15px 25px';
+                message.style.borderRadius = '10px';
+                message.style.zIndex = '1000';
+                message.style.fontSize = '18px';
+                message.style.fontWeight = 'bold';
+                message.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+                
+                document.body.appendChild(message);
+                
+                setTimeout(() => {
+                    document.body.removeChild(message);
+                }, 3000);
+            }
+            
+            // Обработчики событий
+            startButton.addEventListener('click', () => {
+                mainScreen.style.display = 'none';
+                gameUI.style.display = 'block';
+                initGame();
+            });
+            
+            // Обработчики для магазина
+            document.querySelectorAll('.shop-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const itemType = this.dataset.item;
+                    const price = parseInt(this.dataset.price);
+                    
+                    if (gameState.coins >= price) {
+                        gameState.coins -= price;
                         
-                        setTimeout(() => {
-                            cell.classList.remove('selected');
-                        }, 1000);
+                        switch(itemType) {
+                            case 'energy':
+                                gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 20);
+                                showMessage('+20 энергии!');
+                                break;
+                            case 'hint':
+                                // Логика добавления подсказок
+                                showMessage('+3 подсказки!');
+                                break;
+                            case 'decoration':
+                                gameState.decorations++;
+                                showMessage('+1 редкое украшение!');
+                                break;
+                        }
                         
-                        hints--;
                         updateUI();
                     } else {
-                        showMessage('На поле нет доступных ходов');
+                        showMessage('Недостаточно монет!');
                     }
-                } else {
-                    showMessage('У вас закончились подсказки!');
-                }
+                });
             });
             
-            // Обработка кнопки покупки энергии
-            energyBoostButton.addEventListener('click', function() {
-                if (score >= 100) {
-                    score -= 100;
-                    energy = Math.min(maxEnergy, energy + 10);
+            // Имитация игрового процесса "три в ряд"
+            let selectedCell = null;
+            gameBoard.addEventListener('click', function(e) {
+                if (e.target.classList.contains('cell') && gameState.energy >= 5) {
+                    if (selectedCell) {
+                        // Логика обмена ячеек
+                        gameState.energy -= 5;
+                        gameState.levelProgress += 5;
+                        
+                        if (gameState.levelProgress >= 100) {
+                            gameState.level++;
+                            gameState.levelProgress = 0;
+                            showMessage(`Поздравляем! Вы достигли уровня ${gameState.level}!`);
+                        }
+                        
+                        // Шанс 10% получить украшение за ход
+                        if (Math.random() < 0.1) {
+                            gameState.decorations++;
+                            showMessage('+1 украшение!');
+                        }
+                        
+                        selectedCell.classList.remove('selected');
+                        selectedCell = null;
+                    } else {
+                        selectedCell = e.target;
+                        selectedCell.classList.add('selected');
+                    }
+                    
                     updateUI();
-                    showMessage('+10 энергии!');
                 }
             });
-            
-            // Запуск игры
-            initGame();
         });
     </script>
 </body>
