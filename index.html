@@ -90,6 +90,22 @@
             color: #ffd700;
         }
         
+        .energy-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 10px;
+            transition: width 0.5s;
+        }
+        
         .game-board {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -155,6 +171,126 @@
         
         button:active {
             transform: translateY(1px);
+        }
+        
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .calendar-section {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .calendar-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .calendar-title h3 {
+            color: #ffd700;
+        }
+        
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1/1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            position: relative;
+        }
+        
+        .calendar-day.completed {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
+        }
+        
+        .calendar-day.today {
+            background: rgba(255, 215, 0, 0.3);
+            border: 1px solid #ffd700;
+        }
+        
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .day-reward {
+            font-size: 10px;
+            color: #ffd700;
+        }
+        
+        .tree-section {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .tree-title {
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+        
+        .tree-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .tree {
+            font-size: 80px;
+            position: relative;
+        }
+        
+        .decoration {
+            position: absolute;
+            font-size: 20px;
+            animation: glow 2s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)); }
+            to { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8)); }
+        }
+        
+        .tree-progress {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .tree-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ff5252);
+            border-radius: 10px;
+            transition: width 0.5s;
+        }
+        
+        .tree-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
         }
         
         .instructions {
@@ -245,6 +381,14 @@
             .info-value {
                 font-size: 20px;
             }
+            
+            .calendar-days {
+                grid-template-columns: repeat(7, 1fr);
+            }
+            
+            .tree {
+                font-size: 60px;
+            }
         }
     </style>
 </head>
@@ -261,12 +405,15 @@
                 <div class="info-value" id="score">0</div>
             </div>
             <div class="info-item">
-                <div class="info-label">ХОДЫ</div>
-                <div class="info-value" id="moves">30</div>
+                <div class="info-label">ЭНЕРГИЯ</div>
+                <div class="info-value" id="energy">100</div>
+                <div class="energy-bar">
+                    <div class="energy-fill" id="energy-fill" style="width: 100%"></div>
+                </div>
             </div>
             <div class="info-item">
-                <div class="info-label">ЦЕЛЬ</div>
-                <div class="info-value" id="target">1000</div>
+                <div class="info-label">УКРАШЕНИЯ</div>
+                <div class="info-value" id="decorations">0/10</div>
             </div>
         </div>
         
@@ -275,16 +422,40 @@
         <div class="controls">
             <button id="restart">Начать заново</button>
             <button id="hint">Подсказка (3)</button>
+            <button id="energy-boost">+10 энергии (100 очков)</button>
+        </div>
+        
+        <div class="calendar-section">
+            <div class="calendar-title">
+                <h3>🎅 Новогодний календарь</h3>
+                <span id="calendar-progress">5/24</span>
+            </div>
+            <div class="calendar-days" id="calendar-days"></div>
+        </div>
+        
+        <div class="tree-section">
+            <h3 class="tree-title">🎄 Украсьте ёлку!</h3>
+            <div class="tree-container">
+                <div class="tree" id="tree">🎄</div>
+            </div>
+            <div class="tree-progress">
+                <div class="tree-progress-fill" id="tree-progress" style="width: 0%"></div>
+            </div>
+            <div class="tree-stats">
+                <span>Украшено: <span id="decorations-count">0</span>/10</span>
+                <span>Осталось: <span id="decorations-left">10</span></span>
+            </div>
         </div>
         
         <div class="instructions">
             <h3>Как играть:</h3>
             <ul>
                 <li>Находите и соединяйте 3 или более одинаковых новогодних символа в ряд</li>
-                <li>Соединяйте символы по горизонтали или вертикали</li>
-                <li>За каждый ход начисляются очки</li>
-                <li>Цель - набрать 1000 очков за 30 ходов</li>
-                <li>Используйте подсказки, если застряли</li>
+                <li>Каждый ход тратит 5 единиц энергии</li>
+                <li>Собирайте украшения для ёлки, выполняя ежедневные задания</li>
+                <li>Завершите все 24 дня новогоднего календаря</li>
+                <li>Украсьте ёлку 10 разными украшениями для победы</li>
+                <li>Энергия восстанавливается со временем (1 ед./мин)</li>
             </ul>
         </div>
     </div>
@@ -306,30 +477,180 @@
             
             // Игровые переменные
             let score = 0;
-            let moves = 30;
-            let target = 1000;
-            let selectedCell = null;
+            let energy = 100;
+            let maxEnergy = 100;
+            let decorations = 0;
+            let maxDecorations = 10;
             let hints = 3;
+            let selectedCell = null;
             let board = [];
             const symbols = ['snowman', 'gift', 'tree', 'star', 'bell', 'sock', 'candy', 'deer'];
             const boardSize = 8;
             
+            // Календарь
+            let calendarDays = [];
+            let currentDay = 1;
+            const totalDays = 24;
+            
             // Элементы DOM
             const scoreElement = document.getElementById('score');
-            const movesElement = document.getElementById('moves');
-            const targetElement = document.getElementById('target');
+            const energyElement = document.getElementById('energy');
+            const energyFillElement = document.getElementById('energy-fill');
+            const decorationsElement = document.getElementById('decorations');
             const boardElement = document.getElementById('board');
             const restartButton = document.getElementById('restart');
             const hintButton = document.getElementById('hint');
+            const energyBoostButton = document.getElementById('energy-boost');
+            const calendarDaysElement = document.getElementById('calendar-days');
+            const calendarProgressElement = document.getElementById('calendar-progress');
+            const treeElement = document.getElementById('tree');
+            const treeProgressElement = document.getElementById('tree-progress');
+            const decorationsCountElement = document.getElementById('decorations-count');
+            const decorationsLeftElement = document.getElementById('decorations-left');
             
             // Инициализация игры
             function initGame() {
                 score = 0;
-                moves = 30;
+                energy = 100;
+                decorations = 0;
                 hints = 3;
+                currentDay = 1;
+                initCalendar();
                 updateUI();
                 createBoard();
                 renderBoard();
+                updateTree();
+                
+                // Запускаем восстановление энергии
+                startEnergyRegeneration();
+            }
+            
+            // Инициализация календаря
+            function initCalendar() {
+                calendarDays = [];
+                for (let i = 1; i <= totalDays; i++) {
+                    calendarDays.push({
+                        day: i,
+                        completed: i < currentDay,
+                        reward: getRandomReward()
+                    });
+                }
+                renderCalendar();
+            }
+            
+            // Получение случайной награды
+            function getRandomReward() {
+                const rewards = ['+20 энергии', '+50 очков', '1 подсказка', 'украшение'];
+                return rewards[Math.floor(Math.random() * rewards.length)];
+            }
+            
+            // Отрисовка календаря
+            function renderCalendar() {
+                calendarDaysElement.innerHTML = '';
+                calendarProgressElement.textContent = `${currentDay-1}/${totalDays}`;
+                
+                for (let day of calendarDays) {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'calendar-day';
+                    
+                    if (day.completed) {
+                        dayElement.classList.add('completed');
+                    } else if (day.day === currentDay) {
+                        dayElement.classList.add('today');
+                    }
+                    
+                    dayElement.innerHTML = `
+                        <div class="day-number">${day.day}</div>
+                        <div class="day-reward">${day.reward}</div>
+                    `;
+                    
+                    dayElement.addEventListener('click', function() {
+                        if (day.day === currentDay && !day.completed) {
+                            completeDay(day);
+                        }
+                    });
+                    
+                    calendarDaysElement.appendChild(dayElement);
+                }
+            }
+            
+            // Завершение дня в календаре
+            function completeDay(day) {
+                day.completed = true;
+                
+                // Выдача награды
+                switch(day.reward) {
+                    case '+20 энергии':
+                        energy = Math.min(maxEnergy, energy + 20);
+                        showMessage(`+20 энергии!`);
+                        break;
+                    case '+50 очков':
+                        score += 50;
+                        showMessage(`+50 очков!`);
+                        break;
+                    case '1 подсказка':
+                        hints += 1;
+                        showMessage(`+1 подсказка!`);
+                        break;
+                    case 'украшение':
+                        addDecoration();
+                        showMessage(`Новое украшение для ёлки!`);
+                        break;
+                }
+                
+                currentDay++;
+                updateUI();
+                renderCalendar();
+                
+                if (currentDay > totalDays) {
+                    setTimeout(() => {
+                        alert('Поздравляем! Вы завершили новогодний календарь! 🎉');
+                    }, 500);
+                }
+            }
+            
+            // Добавление украшения на ёлку
+            function addDecoration() {
+                if (decorations < maxDecorations) {
+                    decorations++;
+                    updateTree();
+                    updateUI();
+                    
+                    if (decorations === maxDecorations) {
+                        setTimeout(() => {
+                            alert('Поздравляем! Вы полностью украсили ёлку! 🎄✨');
+                        }, 500);
+                    }
+                }
+            }
+            
+            // Обновление ёлки
+            function updateTree() {
+                treeElement.innerHTML = '🎄';
+                
+                // Добавляем украшения в зависимости от количества
+                const decorationTypes = ['🔴', '🟢', '🟡', '🔵', '⭐', '🎀', '💎', '🔔', '🌟', '❄️'];
+                
+                for (let i = 0; i < decorations; i++) {
+                    const decoration = document.createElement('div');
+                    decoration.className = 'decoration';
+                    decoration.innerHTML = decorationTypes[i];
+                    
+                    // Случайное позиционирование украшений на ёлке
+                    const left = 30 + Math.random() * 40;
+                    const top = 20 + Math.random() * 60;
+                    
+                    decoration.style.left = `${left}%`;
+                    decoration.style.top = `${top}%`;
+                    
+                    treeElement.appendChild(decoration);
+                }
+                
+                // Обновляем прогресс
+                const progress = (decorations / maxDecorations) * 100;
+                treeProgressElement.style.width = `${progress}%`;
+                decorationsCountElement.textContent = decorations;
+                decorationsLeftElement.textContent = maxDecorations - decorations;
             }
             
             // Создание игрового поля
@@ -372,7 +693,10 @@
             
             // Обработка клика по ячейке
             function handleCellClick(event) {
-                if (moves <= 0) return;
+                if (energy < 5) {
+                    showMessage("Недостаточно энергии!");
+                    return;
+                }
                 
                 const row = parseInt(event.target.dataset.row);
                 const col = parseInt(event.target.dataset.col);
@@ -396,10 +720,10 @@
                         if (matches.length > 0) {
                             // Если есть совпадения, обрабатываем их
                             processMatches(matches);
-                            moves--;
+                            energy -= 5;
                             updateUI();
                             
-                            // Проверяем условие победы/поражения
+                            // Проверяем условие победы
                             checkGameStatus();
                         } else {
                             // Если нет совпадений, возвращаем ячейки на место
@@ -491,8 +815,22 @@
                     } else {
                         // Если нет новых совпадений, обновляем поле
                         renderBoard();
+                        
+                        // Проверяем выполнение ежедневного задания
+                        checkDailyTask();
                     }
                 }, 300);
+            }
+            
+            // Проверка ежедневного задания
+            function checkDailyTask() {
+                // Шанс 20% на выполнение задания при успешном ходе
+                if (Math.random() < 0.2 && currentDay <= totalDays) {
+                    const day = calendarDays.find(d => d.day === currentDay);
+                    if (day && !day.completed) {
+                        completeDay(day);
+                    }
+                }
             }
             
             // Показ бонусных очков
@@ -509,17 +847,34 @@
                 }, 1000);
             }
             
+            // Показ сообщения
+            function showMessage(text) {
+                // Создаем элемент для сообщения
+                const message = document.createElement('div');
+                message.textContent = text;
+                message.style.position = 'fixed';
+                message.style.top = '50%';
+                message.style.left = '50%';
+                message.style.transform = 'translate(-50%, -50%)';
+                message.style.background = 'rgba(0, 0, 0, 0.8)';
+                message.style.color = 'white';
+                message.style.padding = '10px 20px';
+                message.style.borderRadius = '5px';
+                message.style.zIndex = '1000';
+                message.style.fontSize = '18px';
+                
+                document.body.appendChild(message);
+                
+                setTimeout(() => {
+                    document.body.removeChild(message);
+                }, 2000);
+            }
+            
             // Проверка статуса игры
             function checkGameStatus() {
-                if (score >= target) {
+                if (decorations >= maxDecorations && currentDay > totalDays) {
                     setTimeout(() => {
-                        alert('Поздравляем! Вы выиграли! 🎉');
-                        initGame();
-                    }, 500);
-                } else if (moves <= 0) {
-                    setTimeout(() => {
-                        alert('Игра окончена! Попробуйте еще раз! ❄️');
-                        initGame();
+                        alert('Поздравляем! Вы полностью украсили ёлку и завершили новогодний календарь! 🎄✨');
                     }, 500);
                 }
             }
@@ -527,9 +882,23 @@
             // Обновление интерфейса
             function updateUI() {
                 scoreElement.textContent = score;
-                movesElement.textContent = moves;
-                targetElement.textContent = target;
+                energyElement.textContent = energy;
+                energyFillElement.style.width = `${(energy / maxEnergy) * 100}%`;
+                decorationsElement.textContent = `${decorations}/${maxDecorations}`;
                 hintButton.textContent = `Подсказка (${hints})`;
+                
+                // Обновляем состояние кнопок
+                energyBoostButton.disabled = score < 100;
+            }
+            
+            // Восстановление энергии
+            function startEnergyRegeneration() {
+                setInterval(() => {
+                    if (energy < maxEnergy) {
+                        energy = Math.min(maxEnergy, energy + 1);
+                        updateUI();
+                    }
+                }, 60000); // 1 энергия в минуту
             }
             
             // Обработка кнопки перезапуска
@@ -552,10 +921,20 @@
                         hints--;
                         updateUI();
                     } else {
-                        alert('На поле нет доступных ходов. Используйте кнопку "Начать заново"');
+                        showMessage('На поле нет доступных ходов');
                     }
                 } else {
-                    alert('У вас закончились подсказки!');
+                    showMessage('У вас закончились подсказки!');
+                }
+            });
+            
+            // Обработка кнопки покупки энергии
+            energyBoostButton.addEventListener('click', function() {
+                if (score >= 100) {
+                    score -= 100;
+                    energy = Math.min(maxEnergy, energy + 10);
+                    updateUI();
+                    showMessage('+10 энергии!');
                 }
             });
             
