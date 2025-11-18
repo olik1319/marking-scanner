@@ -3,534 +3,564 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сканер кодов</title>
-    <!-- Основные библиотеки -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- Библиотека для DataMatrix -->
-    <script src="https://cdn.jsdelivr.net/npm/@paulmillr/dmarcode/dist/dmarcode.min.js"></script>
-    
+    <title>Новогоднее Три в Ряд</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: Arial, sans-serif; 
-            background: #f0f2f5; 
-            height: 100vh;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a2e38 0%, #1a5a6c 100%);
+            color: white;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            padding: 20px;
         }
+        
         .container {
-            flex: 1;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            color: #ffd700;
+        }
+        
+        .snowflakes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .snowflake {
+            position: absolute;
+            color: white;
+            font-size: 20px;
+            opacity: 0.8;
+            animation: fall linear infinite;
+        }
+        
+        @keyframes fall {
+            to {
+                transform: translateY(100vh);
+            }
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+        }
+        
+        .info-item {
             display: flex;
             flex-direction: column;
-            max-width: 100%;
+            align-items: center;
+        }
+        
+        .info-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .info-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-gap: 5px;
+            background: rgba(255, 255, 255, 0.1);
             padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #ffd700;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 10px;
-            padding: 10px;
-        }
-        .header h1 {
-            font-size: 1.4rem;
-            color: #333;
-        }
-        .settings {
-            text-align: center;
-            margin: 5px 0;
-            font-size: 0.9rem;
-        }
-        #reader {
-            flex: 1;
-            min-height: 35vh;
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            margin: 5px 0;
+        
+        .cell {
+            aspect-ratio: 1/1;
+            border-radius: 5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f9f9f9;
-        }
-        #results {
-            text-align: center;
-            margin: 8px 0;
-            padding: 8px;
-            background: #e7f3ff;
-            border-radius: 5px;
-            font-size: 0.9rem;
-        }
-        .buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        button {
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            font-size: 24px;
             cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
         }
-        #scanButton {
-            background: #007bff;
+        
+        .cell.selected {
+            transform: scale(0.9);
+            box-shadow: 0 0 10px #ffd700;
+        }
+        
+        .cell.matched {
+            animation: pulse 0.5s;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #ff6b6b;
             color: white;
             font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
         }
-        #scanButton.scanning {
-            background: #ffc107;
-            color: #000;
+        
+        button:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
         }
-        .secondary-btn {
-            background: #6c757d;
-            color: white;
+        
+        button:active {
+            transform: translateY(1px);
         }
-        .share-btn {
-            background: #28a745;
-            color: white;
+        
+        .instructions {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: left;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .toast {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #28a745;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 5px;
-            font-size: 0.8rem;
-            display: none;
-            z-index: 1000;
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #ffd700;
         }
-        .sound-toggle {
-            text-align: center;
-            margin: 5px 0;
-            font-size: 0.9rem;
+        
+        .instructions ul {
+            padding-left: 20px;
         }
-        .pdf-preview {
-            max-width: 100%;
-            max-height: 200px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin: 5px 0;
-            display: none;
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        /* Стили для элементов игры */
+        .snowman::before { content: "⛄"; }
+        .gift::before { content: "🎁"; }
+        .tree::before { content: "🎄"; }
+        .star::before { content: "⭐"; }
+        .bell::before { content: "🔔"; }
+        .sock::before { content: "🧦"; }
+        .candy::before { content: "🍬"; }
+        .deer::before { content: "🦌"; }
+        
+        /* Анимация для новых элементов */
+        @keyframes appear {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        
+        .cell.new {
+            animation: appear 0.3s;
+        }
+        
+        /* Анимация для исчезающих элементов */
+        @keyframes disappear {
+            from { transform: scale(1); opacity: 1; }
+            to { transform: scale(1.5); opacity: 0; }
+        }
+        
+        .cell.removing {
+            animation: disappear 0.3s forwards;
+        }
+        
+        /* Стили для бонусов */
+        .bonus {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+            z-index: 10;
+            opacity: 0;
+            animation: bonus-appear 1s forwards;
+        }
+        
+        @keyframes bonus-appear {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 500px) {
+            .game-board {
+                grid-template-columns: repeat(8, 1fr);
+                grid-gap: 3px;
+            }
+            
+            .cell {
+                font-size: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .info-value {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📦 Сканер кодов (DataMatrix GS1)</h1>
+            <h1>🎄 Новогоднее Три в Ряд 🎅</h1>
+            <div class="snowflakes" id="snowflakes"></div>
         </div>
         
-        <div class="settings">
-            <label>
-                <input type="checkbox" id="fullCodeMode" onchange="saveSettings()"> Полный код (все символы GS1)
-            </label>
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">ОЧКИ</div>
+                <div class="info-value" id="score">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">ХОДЫ</div>
+                <div class="info-value" id="moves">30</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">ЦЕЛЬ</div>
+                <div class="info-value" id="target">1000</div>
+            </div>
         </div>
-
-        <div class="sound-toggle">
-            <label>
-                <input type="checkbox" id="soundEnabled" checked onchange="saveSettings()"> 🔊 Звук при сканировании
-            </label>
+        
+        <div class="game-board" id="board"></div>
+        
+        <div class="controls">
+            <button id="restart">Начать заново</button>
+            <button id="hint">Подсказка (3)</button>
         </div>
         
-        <div id="reader">
-            <div>Камера не активирована</div>
-        </div>
-        
-        <!-- Preview для PDF -->
-        <img id="pdfPreview" class="pdf-preview" alt="PDF Preview">
-        
-        <div id="results">Отсканировано: 0 кодов</div>
-        
-        <div class="buttons">
-            <button id="scanButton" onclick="toggleScan()">▶️ НАЧАТЬ СКАНИРОВАНИЕ</button>
-            
-            <input type="file" id="fileInput" 
-                   accept="image/*" 
-                   style="display: none;" 
-                   onchange="scanFromFile(event)">
-            <button class="secondary-btn" onclick="document.getElementById('fileInput').click()">🖼️ Сканировать из изображения</button>
-
-            <button class="share-btn" onclick="shareCodes()">📤 Поделиться</button>
-            <button class="secondary-btn" onclick="exportCSV()">💾 Скачать CSV</button>
-            <button class="secondary-btn" onclick="clearCodes()">🗑️ Очистить</button>
+        <div class="instructions">
+            <h3>Как играть:</h3>
+            <ul>
+                <li>Находите и соединяйте 3 или более одинаковых новогодних символа в ряд</li>
+                <li>Соединяйте символы по горизонтали или вертикали</li>
+                <li>За каждый ход начисляются очки</li>
+                <li>Цель - набрать 1000 очков за 30 ходов</li>
+                <li>Используйте подсказки, если застряли</li>
+            </ul>
         </div>
     </div>
 
-    <div id="toast" class="toast"></div>
-
     <script>
-        // Глобальные переменные
-        window.codes = [];
-        window.html5QrCode = null;
-        window.isScanning = false;
-        window.GS = String.fromCharCode(29);
-        
-        // --- Настройки и UI ---
-
-        window.loadSettings = function() {
-            const savedFullCode = localStorage.getItem('fullCodeMode');
-            const fullCodeMode = savedFullCode === 'true';
-            document.getElementById('fullCodeMode').checked = fullCodeMode;
-
-            const savedSound = localStorage.getItem('soundEnabled');
-            const soundEnabled = savedSound === null ? true : savedSound === 'true';
-            document.getElementById('soundEnabled').checked = soundEnabled;
-        }
-
-        window.saveSettings = function() {
-            const fullCodeMode = document.getElementById('fullCodeMode').checked;
-            localStorage.setItem('fullCodeMode', fullCodeMode);
-
-            const soundEnabled = document.getElementById('soundEnabled').checked;
-            localStorage.setItem('soundEnabled', soundEnabled);
-        }
-
-        // Функция воспроизведения звука успешного сканирования
-        window.playSuccessSound = function() {
-            const soundEnabled = document.getElementById('soundEnabled').checked;
-            if (!soundEnabled) return;
-
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.15);
-                
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.15);
-                
-            } catch (error) {
-                console.log('Ошибка воспроизведения звука успеха:', error);
-            }
-        }
-
-        // Функция воспроизведения звука повторного сканирования (дубликат)
-        window.playDuplicateSound = function() {
-            const soundEnabled = document.getElementById('soundEnabled').checked;
-            if (!soundEnabled) return;
-
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.type = 'sawtooth';
-                oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.2);
-                
-                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.2);
-                
-            } catch (error) {
-                console.log('Ошибка воспроизведения звука дубликата:', error);
-            }
-        }
-
-        // Функция воспроизведения звука ошибки сканирования
-        window.playErrorSound = function() {
-            const soundEnabled = document.getElementById('soundEnabled').checked;
-            if (!soundEnabled) return;
-
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.type = 'square';
-                oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-                oscillator.frequency.setValueAtTime(200, audioContext.currentTime + 0.05);
-                oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.1);
-                
-                gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.1);
-                
-            } catch (error) {
-                console.log('Ошибка воспроизведения звука ошибки:', error);
-            }
-        }
-
-        window.showToast = function(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.background = isError ? '#dc3545' : '#28a745';
-            toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 2500);
-        }
-
-        window.updateResults = function() {
-            document.getElementById('results').textContent = 'Отсканировано: ' + codes.length + ' кодов';
-        }
-
-        // --- Обработка сканированных кодов ---
-
-        window.processScannedCode = function(decodedText) {
-            const currentFullCodeMode = document.getElementById('fullCodeMode').checked; 
-
-            // Логика извлечения кода
-            let serializedCode;
-            if (currentFullCodeMode) {
-                serializedCode = decodedText;
-            } else {
-                const parts = decodedText.split(GS);
-                serializedCode = parts.length > 1 ? parts[1] : decodedText;
-            }
-            
-            if (!serializedCode) {
-                showToast("Ошибка кода или неверный формат GS1", true);
-                playErrorSound();
-                return false;
-            }
-            
-            if (codes.includes(serializedCode)) {
-                showToast("Уже отсканирован", true);
-                playDuplicateSound();
-                return false;
-            }
-            
-            playSuccessSound();
-            codes.push(serializedCode);
-            updateResults();
-            showToast(`✅ +1 (всего: ${codes.length})`);
-            return true;
-        }
-
-        // --- Логика сканирования с камеры ---
-
-        window.onScanSuccess = function(decodedText, result) {
-            // Проверка формата (только для сканирования с камеры)
-            if (result && result.result.format.formatName !== 'DATA_MATRIX') {
-                showToast('Требуется DataMatrix', true);
-                playErrorSound();
-                return;
-            }
-
-            processScannedCode(decodedText);
-        }
-
-        window.toggleScan = function() {
-            if (isScanning) {
-                stopScan();
-            } else {
-                startScan();
-            }
-        }
-
-        window.startScan = function() {
-            const button = document.getElementById('scanButton');
-            
-            saveSettings(); 
-
-            button.textContent = '⏹️ ОСТАНОВИТЬ СКАНИРОВАНИЕ';
-            button.classList.add('scanning');
-
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                { 
-                    fps: 10, 
-                    qrbox: { width: 200, height: 200 },
-                    supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_DATA_MATRIX]
-                }, 
-                onScanSuccess, 
-                () => {}
-            ).then(() => {
-                isScanning = true;
-            }).catch(err => {
-                showToast("Ошибка камеры: " + err, true);
-                playErrorSound();
-                stopScan();
-            });
-        }
-
-        window.stopScan = function() {
-            const button = document.getElementById('scanButton');
-            
-            if (html5QrCode && isScanning) {
-                html5QrCode.stop().then(() => {
-                    isScanning = false;
-                    button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
-                    button.classList.remove('scanning');
-                }).catch(() => {
-                    isScanning = false;
-                    button.textContent = '▶️ НАЧАТЬ СКАНИРОВАНИЕ';
-                    button.classList.remove('scanning');
-                });
-            }
-        }
-        
-        // --- Сканирование из файла ---
-
-        window.scanFromFile = function(event) {
-            if (isScanning) {
-                showToast('Сначала остановите сканирование с камеры', true);
-                event.target.value = null;
-                return;
-            }
-
-            const file = event.target.files[0];
-            if (!file) return;
-
-            event.target.value = null; 
-
-            if (file.type.startsWith('image/')) {
-                scanImageFile(file);
-            } else {
-                showToast('Выберите изображение (PNG, JPG)', true);
-                playErrorSound();
-            }
-        }
-
-        // ОСНОВНАЯ ФУНКЦИЯ СКАНИРОВАНИЯ ИЗОБРАЖЕНИЙ
-        function scanImageFile(file) {
-            showToast(`Сканирование изображения...`);
-            
-            const img = new Image();
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                img.onload = function() {
-                    // Показываем превью
-                    const preview = document.getElementById('pdfPreview');
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    
-                    // Сканируем с помощью html5-qrcode
-                    if (!html5QrCode) {
-                        html5QrCode = new Html5Qrcode("reader");
-                    }
-                    
-                    html5QrCode.scanFile(file, true)
-                        .then(decodedText => {
-                            processScannedCode(decodedText);
-                        })
-                        .catch(err => {
-                            // Если html5-qrcode не сработал, пробуем dmarcode
-                            scanWithDmarcode(img);
-                        });
-                };
-                img.src = e.target.result;
-            };
-            
-            reader.readAsDataURL(file);
-        }
-
-        // АЛЬТЕРНАТИВНОЕ СКАНИРОВАНИЕ С dmarcode
-        async function scanWithDmarcode(img) {
-            showToast('Пробуем альтернативное сканирование...');
-            
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Устанавливаем размеры canvas
-            canvas.width = img.width;
-            canvas.height = img.height;
-            
-            // Рисуем изображение
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-            
-            try {
-                // Получаем ImageData
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
-                // Пробуем найти DataMatrix с dmarcode
-                const result = await dmarcode.decode(imageData);
-                
-                if (result && result.data) {
-                    processScannedCode(result.data);
-                } else {
-                    showToast('DataMatrix не найден в изображении', true);
-                    playErrorSound();
-                }
-            } catch (error) {
-                showToast('Ошибка сканирования: ' + error.message, true);
-                playErrorSound();
-            }
-        }
-
-        // --- Утилиты ---
-
-        window.shareCodes = function() {
-            if (codes.length === 0) {
-                showToast('Нет кодов для отправки', true);
-                playErrorSound();
-                return;
-            }
-            
-            const csv = codes.join('\n');
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-            const file = new File([blob], `codes_${codes.length}.csv`, { type: 'text/csv' });
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: `Отсканированные коды (${codes.length})`,
-                    files: [file]
-                }).catch((error) => {
-                    if (error.name !== 'AbortError') {
-                        exportCSV();
-                    }
-                });
-            } else {
-                exportCSV();
-            }
-        }
-
-        window.exportCSV = function() {
-            if (codes.length === 0) {
-                showToast('Нет кодов для скачивания', true);
-                playErrorSound();
-                return;
-            }
-            
-            const csv = codes.join('\n');
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `codes_${codes.length}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast(`Скачан CSV (${codes.length})`);
-        }
-
-        window.clearCodes = function() {
-            if (codes.length === 0) {
-                playErrorSound();
-                return;
-            }
-            if (confirm(`Очистить ${codes.length} кодов?`)) {
-                codes = [];
-                updateResults();
-                showToast('Очищено');
-            }
-        }
-
-        // Загружаем настройки при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
-            loadSettings();
+            // Создание снежинок
+            const snowflakesContainer = document.getElementById('snowflakes');
+            for (let i = 0; i < 50; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.className = 'snowflake';
+                snowflake.innerHTML = '❄';
+                snowflake.style.left = Math.random() * 100 + '%';
+                snowflake.style.animationDuration = (Math.random() * 5 + 5) + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                snowflake.style.fontSize = (Math.random() * 10 + 10) + 'px';
+                snowflakesContainer.appendChild(snowflake);
+            }
+            
+            // Игровые переменные
+            let score = 0;
+            let moves = 30;
+            let target = 1000;
+            let selectedCell = null;
+            let hints = 3;
+            let board = [];
+            const symbols = ['snowman', 'gift', 'tree', 'star', 'bell', 'sock', 'candy', 'deer'];
+            const boardSize = 8;
+            
+            // Элементы DOM
+            const scoreElement = document.getElementById('score');
+            const movesElement = document.getElementById('moves');
+            const targetElement = document.getElementById('target');
+            const boardElement = document.getElementById('board');
+            const restartButton = document.getElementById('restart');
+            const hintButton = document.getElementById('hint');
+            
+            // Инициализация игры
+            function initGame() {
+                score = 0;
+                moves = 30;
+                hints = 3;
+                updateUI();
+                createBoard();
+                renderBoard();
+            }
+            
+            // Создание игрового поля
+            function createBoard() {
+                board = [];
+                for (let row = 0; row < boardSize; row++) {
+                    board[row] = [];
+                    for (let col = 0; col < boardSize; col++) {
+                        board[row][col] = getRandomSymbol();
+                    }
+                }
+                
+                // Убедимся, что на поле нет готовых комбинаций
+                while (findMatches().length > 0) {
+                    for (let match of findMatches()) {
+                        board[match.row][match.col] = getRandomSymbol();
+                    }
+                }
+            }
+            
+            // Получение случайного символа
+            function getRandomSymbol() {
+                return symbols[Math.floor(Math.random() * symbols.length)];
+            }
+            
+            // Отрисовка игрового поля
+            function renderBoard() {
+                boardElement.innerHTML = '';
+                for (let row = 0; row < boardSize; row++) {
+                    for (let col = 0; col < boardSize; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = `cell ${board[row][col]}`;
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        cell.addEventListener('click', handleCellClick);
+                        boardElement.appendChild(cell);
+                    }
+                }
+            }
+            
+            // Обработка клика по ячейке
+            function handleCellClick(event) {
+                if (moves <= 0) return;
+                
+                const row = parseInt(event.target.dataset.row);
+                const col = parseInt(event.target.dataset.col);
+                
+                // Если ячейка уже выбрана
+                if (selectedCell) {
+                    const prevRow = parseInt(selectedCell.dataset.row);
+                    const prevCol = parseInt(selectedCell.dataset.col);
+                    
+                    // Проверяем, являются ли ячейки соседями
+                    const isNeighbor = 
+                        (Math.abs(row - prevRow) === 1 && col === prevCol) ||
+                        (Math.abs(col - prevCol) === 1 && row === prevRow);
+                    
+                    if (isNeighbor) {
+                        // Меняем ячейки местами
+                        swapCells(prevRow, prevCol, row, col);
+                        
+                        // Проверяем, есть ли совпадения
+                        const matches = findMatches();
+                        if (matches.length > 0) {
+                            // Если есть совпадения, обрабатываем их
+                            processMatches(matches);
+                            moves--;
+                            updateUI();
+                            
+                            // Проверяем условие победы/поражения
+                            checkGameStatus();
+                        } else {
+                            // Если нет совпадений, возвращаем ячейки на место
+                            swapCells(row, col, prevRow, prevCol);
+                        }
+                    }
+                    
+                    // Снимаем выделение
+                    selectedCell.classList.remove('selected');
+                    selectedCell = null;
+                } else {
+                    // Выделяем ячейку
+                    selectedCell = event.target;
+                    selectedCell.classList.add('selected');
+                }
+            }
+            
+            // Обмен ячеек местами
+            function swapCells(row1, col1, row2, col2) {
+                const temp = board[row1][col1];
+                board[row1][col1] = board[row2][col2];
+                board[row2][col2] = temp;
+                renderBoard();
+            }
+            
+            // Поиск совпадений
+            function findMatches() {
+                const matches = [];
+                
+                // Проверка по горизонтали
+                for (let row = 0; row < boardSize; row++) {
+                    for (let col = 0; col < boardSize - 2; col++) {
+                        if (board[row][col] === board[row][col+1] && 
+                            board[row][col] === board[row][col+2]) {
+                            matches.push({row, col});
+                            matches.push({row, col: col+1});
+                            matches.push({row, col: col+2});
+                        }
+                    }
+                }
+                
+                // Проверка по вертикали
+                for (let row = 0; row < boardSize - 2; row++) {
+                    for (let col = 0; col < boardSize; col++) {
+                        if (board[row][col] === board[row+1][col] && 
+                            board[row][col] === board[row+2][col]) {
+                            matches.push({row, col});
+                            matches.push({row: row+1, col});
+                            matches.push({row: row+2, col});
+                        }
+                    }
+                }
+                
+                // Убираем дубликаты
+                return matches.filter((match, index, self) => 
+                    index === self.findIndex(m => 
+                        m.row === match.row && m.col === match.col
+                    )
+                );
+            }
+            
+            // Обработка совпадений
+            function processMatches(matches) {
+                // Добавляем очки
+                const points = matches.length * 10;
+                score += points;
+                
+                // Показываем бонусные очки
+                showBonus(points, matches[0].row, matches[0].col);
+                
+                // Удаляем совпавшие элементы
+                for (let match of matches) {
+                    const cell = document.querySelector(`.cell[data-row="${match.row}"][data-col="${match.col}"]`);
+                    cell.classList.add('removing');
+                }
+                
+                // Задержка для анимации
+                setTimeout(() => {
+                    // Заменяем удаленные элементы
+                    for (let match of matches) {
+                        board[match.row][match.col] = getRandomSymbol();
+                    }
+                    
+                    // Проверяем новые совпадения
+                    const newMatches = findMatches();
+                    if (newMatches.length > 0) {
+                        // Если есть новые совпадения, обрабатываем их
+                        processMatches(newMatches);
+                    } else {
+                        // Если нет новых совпадений, обновляем поле
+                        renderBoard();
+                    }
+                }, 300);
+            }
+            
+            // Показ бонусных очков
+            function showBonus(points, row, col) {
+                const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                const bonus = document.createElement('div');
+                bonus.className = 'bonus';
+                bonus.textContent = `+${points}`;
+                bonus.style.color = '#ffd700';
+                cell.appendChild(bonus);
+                
+                setTimeout(() => {
+                    bonus.remove();
+                }, 1000);
+            }
+            
+            // Проверка статуса игры
+            function checkGameStatus() {
+                if (score >= target) {
+                    setTimeout(() => {
+                        alert('Поздравляем! Вы выиграли! 🎉');
+                        initGame();
+                    }, 500);
+                } else if (moves <= 0) {
+                    setTimeout(() => {
+                        alert('Игра окончена! Попробуйте еще раз! ❄️');
+                        initGame();
+                    }, 500);
+                }
+            }
+            
+            // Обновление интерфейса
+            function updateUI() {
+                scoreElement.textContent = score;
+                movesElement.textContent = moves;
+                targetElement.textContent = target;
+                hintButton.textContent = `Подсказка (${hints})`;
+            }
+            
+            // Обработка кнопки перезапуска
+            restartButton.addEventListener('click', initGame);
+            
+            // Обработка кнопки подсказки
+            hintButton.addEventListener('click', function() {
+                if (hints > 0) {
+                    const matches = findMatches();
+                    if (matches.length > 0) {
+                        // Подсвечиваем случайное совпадение
+                        const randomMatch = matches[Math.floor(Math.random() * matches.length)];
+                        const cell = document.querySelector(`.cell[data-row="${randomMatch.row}"][data-col="${randomMatch.col}"]`);
+                        cell.classList.add('selected');
+                        
+                        setTimeout(() => {
+                            cell.classList.remove('selected');
+                        }, 1000);
+                        
+                        hints--;
+                        updateUI();
+                    } else {
+                        alert('На поле нет доступных ходов. Используйте кнопку "Начать заново"');
+                    }
+                } else {
+                    alert('У вас закончились подсказки!');
+                }
+            });
+            
+            // Запуск игры
+            initGame();
         });
     </script>
 </body>
