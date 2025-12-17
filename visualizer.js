@@ -4,44 +4,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const audioContainer = document.getElementById('audio-container');
     const ctx = canvas.getContext('2d');
 
-    // Настройки Canvas (остаются прежними)
+    // Настройки Canvas
+    // Важно: Эти переменные нужно установить после загрузки страницы
     const WIDTH = canvas.width = canvas.clientWidth;
     const HEIGHT = canvas.height = canvas.clientHeight;
     
-    let audioContext = null; // Будет инициализирован только при первом воспроизведении
+    let audioContext = null;
     let analyser;
-    let animationFrameId; // Для остановки цикла draw при смене песни
+    let animationFrameId = null; // ID для управления циклом requestAnimationFrame
 
-    // --- Шаг 1: Обработка выбора файла ---
+    // --- Обработка выбора файла ---
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Очищаем предыдущий аудиоэлемент и его URL
+            // Очистка предыдущего состояния
             audioContainer.innerHTML = ''; 
-            
-            // Если есть активный цикл визуализации, останавливаем его
-            if (animationFrameId) {
+            if (animationFrameId !== null) {
                 cancelAnimationFrame(animationFrameId);
-                // Очищаем Canvas
-                ctx.fillRect(0, 0, WIDTH, HEIGHT); 
+                animationFrameId = null;
             }
+            // Сброс Canvas
+            ctx.fillStyle = 'rgb(15, 15, 35)';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT); 
 
             // Создаем новый аудио-элемент
             const audioSource = new Audio();
             audioSource.controls = true;
             audioSource.loop = false;
-            
-            // Создаем временный URL для выбранного файла и присваиваем его элементу
             audioSource.src = URL.createObjectURL(file);
             
             // Добавляем элемент в DOM
             audioContainer.appendChild(audioSource);
 
-            // --- Шаг 2: Инициализация Web Audio API при первом Play ---
-            // Слушаем событие 'play' только один раз
+            // --- Инициализация Web Audio API при первом Play ---
             audioSource.addEventListener('play', () => {
+                // Инициализируем AudioContext только один раз
                 if (!audioContext) {
-                    // Инициализация AudioContext и AnalyserNode
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     const source = audioContext.createMediaElementSource(audioSource);
                     
@@ -50,41 +48,47 @@ document.addEventListener('DOMContentLoaded', () => {
                     const bufferLength = analyser.frequencyBinCount;
                     const dataArray = new Uint8Array(bufferLength);
                     
-                    // Соединяем узлы: Источник -> Анализатор -> Выход
+                    // Соединяем узлы: Источник -> Анализатор -> Выход (динамики)
                     source.connect(analyser);
                     analyser.connect(audioContext.destination);
 
                     // Запускаем цикл визуализации
                     draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx);
-                }
-            }, { once: true }); // Инициализируем AudioContext только один раз
-            
-            // При последующих паузах/воспроизведениях просто возобновляем AudioContext, если он был приостановлен
-            audioSource.addEventListener('play', () => {
-                 if (audioContext && audioContext.state === 'suspended') {
+                } 
+                
+                // Возобновление AudioContext, если он был приостановлен (например, при смене вкладки)
+                if (audioContext && audioContext.state === 'suspended') {
                     audioContext.resume();
                 }
-                 // Запускаем цикл draw снова, если он был остановлен
-                 draw(analyser, new Uint8Array(analyser.frequencyBinCount), analyser.frequencyBinCount, WIDTH, HEIGHT, ctx);
+                
+                // Возобновление цикла рисования, если он был остановлен (после паузы)
+                if (analyser && animationFrameId === null) {
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx);
+                }
+
             });
             
+            // --- Остановка цикла рисования при паузе ---
             audioSource.addEventListener('pause', () => {
-                if (animationFrameId) {
-                    cancelAnimationFrame(animationFrameId); // Останавливаем рисование при паузе
+                if (animationFrameId !== null) {
+                    cancelAnimationFrame(animationFrameId); 
+                    animationFrameId = null; // Сброс ID
                 }
             });
         }
     });
 
     /**
-     * Основной цикл рисования визуализации (НЕМНОГО МОДИФИЦИРОВАН)
+     * Основной цикл рисования визуализации (спектр)
      */
     function draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx) {
         
-        // Запоминаем ID кадра для последующей остановки
+        // Запоминаем ID кадра для управления паузой/возобновлением
         animationFrameId = requestAnimationFrame(() => draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx));
-
-        // Копируем данные частот в dataArray
+        
+        // Копируем данные частот в dataArray (значения от 0 до 255)
         analyser.getByteFrequencyData(dataArray); 
 
         // Очищаем Canvas
@@ -96,7 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Рисуем столбики (спектр)
         for(let i = 0; i < bufferLength; i++) {
-            const barHeight = dataArray[i]; 
+            const barHeight = dataArray[i]; // Амплитуда
+            
+            // Масштабирование высоты
             const heightScale = barHeight / 255;
             const barScaledHeight = heightScale * HEIGHT; 
 
@@ -107,8 +113,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
 
+            // Рисуем прямоугольник. Начинаем снизу Canvas
             ctx.fillRect(x, HEIGHT - barScaledHeight, barWidth, barScaledHeight);
 
+            // Перемещаемся вправо для следующего столбика
             x += barWidth + 1;
         }
     }
