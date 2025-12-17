@@ -25,24 +25,43 @@ h1 {
     margin: 15px 0;
 }
 
+#controls {
+    margin-top: 20px;
+    text-align: center;
+}
+
+#controls button {
+    padding: 10px 20px;
+    margin: 5px;
+    cursor: pointer;
+    background-color: #00ffff;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.warning {
+    color: #ff9999;
+    font-size: 0.8em;
+    margin-top: 10px;
+}
+
 /* Стили для контейнера 3D-визуализации */
 #visualizer-container {
     /* Фиксированные размеры для 3D-сцены */
     width: 80vw;
-    max-width: 800px; /* Максимальная ширина для больших экранов */
+    max-width: 800px; 
     height: 40vh;
-    min-height: 250px; /* Минимальная высота, чтобы сцена не исчезла на маленьких экранах */
+    min-height: 250px; 
     
-    border: 2px solid #00ffff; /* Голубая рамка */
-    background-color: #0f0f23; /* Фон контейнера */
+    border: 2px solid #00ffff; 
+    background-color: #0f0f23; 
     margin-top: 20px;
     
-    /* Важно: Скрываем возможные переполнения, если 3D-рендер выйдет за границы */
     overflow: hidden; 
 }
 
-/* Three.js добавляет <canvas> внутри #visualizer-container. 
-   Этот стиль гарантирует, что Canvas займет 100% контейнера. */
+/* Three.js добавляет <canvas> внутри #visualizer-container. */
 #visualizer-container canvas {
     display: block;
     width: 100%;
