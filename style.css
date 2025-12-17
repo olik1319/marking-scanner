@@ -1,14 +1,16 @@
-/* Базовые стили для сброса и фона */
+/* ====================================================================
+   Базовые стили и центрирование
+   ==================================================================== */
 body {
     display: flex;
     flex-direction: column;
     align-items: center;
     font-family: Arial, sans-serif;
-    background-color: #1a1a2e; /* Темно-фиолетовый фон */
+    background-color: #1a1a2e; /* Темно-фиолетовый фон по умолчанию */
     color: #ffffff;
     padding: 20px;
     margin: 0;
-    min-height: 100vh; /* Занимает всю высоту экрана */
+    min-height: 100vh;
 }
 
 h1 {
@@ -16,7 +18,37 @@ h1 {
     text-align: center;
 }
 
-/* Стили для элементов управления */
+/* ====================================================================
+   Стили для элементов управления и настроек
+   ==================================================================== */
+#settings-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center; /* Центрирование настроек */
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background-color: #2a2a44;
+}
+
+#settings-controls label {
+    margin-right: 5px;
+    font-weight: 500;
+}
+
+#settings-controls input[type="text"],
+#settings-controls input[type="file"],
+#settings-controls input[type="color"] {
+    border: 1px solid #444;
+    padding: 5px;
+    background-color: #3e3e60;
+    color: #fff;
+    border-radius: 4px;
+}
+
+/* Элемент для загрузки аудио и контейнер плеера */
 #audioFile {
     margin-bottom: 15px;
 }
@@ -25,6 +57,7 @@ h1 {
     margin: 15px 0;
 }
 
+/* Стили для кнопок записи */
 #controls {
     margin-top: 20px;
     text-align: center;
@@ -38,6 +71,16 @@ h1 {
     border: none;
     border-radius: 5px;
     font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+#controls button:hover:enabled {
+    background-color: #00dddd;
+}
+
+#controls button:disabled {
+    background-color: #555555;
+    cursor: not-allowed;
 }
 
 .warning {
@@ -46,24 +89,47 @@ h1 {
     margin-top: 10px;
 }
 
-/* Стили для контейнера 3D-визуализации */
+/* ====================================================================
+   Стили для отображения названия трека
+   ==================================================================== */
+#track-title-display {
+    font-size: 2em;
+    font-weight: bold;
+    color: #00ffff;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5); /* Эффект свечения */
+    transition: color 0.3s;
+    text-align: center;
+    width: 100%;
+}
+
+/* ====================================================================
+   Стили для контейнера 3D-визуализации (Формат 16:9)
+   ==================================================================== */
 #visualizer-container {
-    /* Фиксированные размеры для 3D-сцены */
+    /* Фиксируем ширину и обеспечиваем адаптивность */
     width: 80vw;
     max-width: 800px; 
-    height: 40vh;
-    min-height: 250px; 
+    
+    /* Хак для соотношения сторон 16:9:
+       Устанавливаем height: 0 и padding-bottom: 9/16 * 100% = 56.25% */
+    height: 0; 
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
     
     border: 2px solid #00ffff; 
     background-color: #0f0f23; 
     margin-top: 20px;
     
     overflow: hidden; 
+    position: relative; /* Необходим для абсолютного позиционирования Canvas */
 }
 
-/* Three.js добавляет <canvas> внутри #visualizer-container. */
+/* Canvas, созданный Three.js, должен заполнить родительский контейнер */
 #visualizer-container canvas {
     display: block;
     width: 100%;
     height: 100%;
+    position: absolute; 
+    top: 0;
+    left: 0;
 }
