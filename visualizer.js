@@ -1,110 +1,115 @@
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('audioFile');
-    const startButton = document.getElementById('startButton');
     const canvas = document.getElementById('visualizer');
+    const audioContainer = document.getElementById('audio-container');
     const ctx = canvas.getContext('2d');
 
     // Настройки Canvas (остаются прежними)
     const WIDTH = canvas.width = canvas.clientWidth;
     const HEIGHT = canvas.height = canvas.clientHeight;
     
-    let audioContext;
+    let audioContext = null; // Будет инициализирован только при первом воспроизведении
     let analyser;
-    let audioSource; // Объект для хранения аудиоисточника
+    let animationFrameId; // Для остановки цикла draw при смене песни
 
     // --- Шаг 1: Обработка выбора файла ---
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Создаем временный URL для выбранного файла
-            const fileURL = URL.createObjectURL(file);
+            // Очищаем предыдущий аудиоэлемент и его URL
+            audioContainer.innerHTML = ''; 
+            
+            // Если есть активный цикл визуализации, останавливаем его
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                // Очищаем Canvas
+                ctx.fillRect(0, 0, WIDTH, HEIGHT); 
+            }
 
             // Создаем новый аудио-элемент
-            audioSource = new Audio(fileURL);
-            audioSource.controls = true; // Добавляем контролы для управления
+            const audioSource = new Audio();
+            audioSource.controls = true;
             audioSource.loop = false;
             
-            // Вставляем элемент в DOM, чтобы пользователь мог нажать Play
-            document.body.insertBefore(audioSource, canvas); 
+            // Создаем временный URL для выбранного файла и присваиваем его элементу
+            audioSource.src = URL.createObjectURL(file);
             
-            // Активируем кнопку для начала визуализации
-            startButton.disabled = false;
+            // Добавляем элемент в DOM
+            audioContainer.appendChild(audioSource);
+
+            // --- Шаг 2: Инициализация Web Audio API при первом Play ---
+            // Слушаем событие 'play' только один раз
+            audioSource.addEventListener('play', () => {
+                if (!audioContext) {
+                    // Инициализация AudioContext и AnalyserNode
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = audioContext.createMediaElementSource(audioSource);
+                    
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256; 
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    
+                    // Соединяем узлы: Источник -> Анализатор -> Выход
+                    source.connect(analyser);
+                    analyser.connect(audioContext.destination);
+
+                    // Запускаем цикл визуализации
+                    draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx);
+                }
+            }, { once: true }); // Инициализируем AudioContext только один раз
+            
+            // При последующих паузах/воспроизведениях просто возобновляем AudioContext, если он был приостановлен
+            audioSource.addEventListener('play', () => {
+                 if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                 // Запускаем цикл draw снова, если он был остановлен
+                 draw(analyser, new Uint8Array(analyser.frequencyBinCount), analyser.frequencyBinCount, WIDTH, HEIGHT, ctx);
+            });
+            
+            audioSource.addEventListener('pause', () => {
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId); // Останавливаем рисование при паузе
+                }
+            });
         }
     });
 
-    // --- Шаг 2: Инициализация Web Audio API при нажатии кнопки ---
-    startButton.addEventListener('click', () => {
-        if (!audioSource || !audioSource.paused) {
-            alert("Пожалуйста, сначала выберите аудиофайл и остановите его.");
-            return;
-        }
+    /**
+     * Основной цикл рисования визуализации (НЕМНОГО МОДИФИЦИРОВАН)
+     */
+    function draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx) {
         
-        if (!audioContext) {
-            // Создаем AudioContext
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Создаем источник из HTML-элемента <audio>
-            const source = audioContext.createMediaElementSource(audioSource);
-            
-            // Создаем анализатор
-            analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256; 
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            
-            // Соединяем узлы: Источник -> Анализатор -> Выход (динамики)
-            source.connect(analyser);
-            analyser.connect(audioContext.destination);
+        // Запоминаем ID кадра для последующей остановки
+        animationFrameId = requestAnimationFrame(() => draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx));
 
-            // Запускаем цикл визуализации
-            draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx);
+        // Копируем данные частот в dataArray
+        analyser.getByteFrequencyData(dataArray); 
+
+        // Очищаем Canvas
+        ctx.fillStyle = 'rgb(15, 15, 35)';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        const barWidth = (WIDTH / bufferLength) * 2.5;
+        let x = 0;
+
+        // Рисуем столбики (спектр)
+        for(let i = 0; i < bufferLength; i++) {
+            const barHeight = dataArray[i]; 
+            const heightScale = barHeight / 255;
+            const barScaledHeight = heightScale * HEIGHT; 
+
+            // Цвета
+            const red = barHeight + (25 * (i/bufferLength));
+            const green = 250 * (i/bufferLength);
+            const blue = 50;
             
-            // Можно сразу запустить воспроизведение после инициализации
-            audioSource.play();
-            startButton.textContent = "Визуализация активна";
-            startButton.disabled = true;
-        } else {
-             // Если AudioContext уже есть, просто запускаем Play
-             audioSource.play();
+            ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+
+            ctx.fillRect(x, HEIGHT - barScaledHeight, barWidth, barScaledHeight);
+
+            x += barWidth + 1;
         }
-    });
-
-    // ... (Функция draw остается без изменений) ...
-});
-
-
-/**
- * Основной цикл рисования визуализации (эту функцию скопируйте из предыдущего ответа)
- */
-function draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx) {
-    
-    // Запускаем следующий кадр анимации
-    requestAnimationFrame(() => draw(analyser, dataArray, bufferLength, WIDTH, HEIGHT, ctx));
-
-    // Копируем данные частот в dataArray
-    analyser.getByteFrequencyData(dataArray);
-
-    // Очищаем Canvas
-    ctx.fillStyle = 'rgb(15, 15, 35)';
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-    const barWidth = (WIDTH / bufferLength) * 2.5;
-    let x = 0;
-
-    // Рисуем столбики (спектр)
-    for(let i = 0; i < bufferLength; i++) {
-        const barHeight = dataArray[i]; 
-        const heightScale = barHeight / 255;
-        const barScaledHeight = heightScale * HEIGHT; 
-
-        const red = barHeight + (25 * (i/bufferLength));
-        const green = 250 * (i/bufferLength);
-        const blue = 50;
-        
-        ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
-
-        ctx.fillRect(x, HEIGHT - barScaledHeight, barWidth, barScaledHeight);
-
-        x += barWidth + 1;
     }
-}
+});
