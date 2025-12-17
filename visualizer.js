@@ -1,19 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Получение элементов DOM
     const fileInput = document.getElementById('audioFile');
     const audioContainer = document.getElementById('audio-container');
     const container = document.getElementById('visualizer-container');
     const startButton = document.getElementById('startRecording');
     const stopButton = document.getElementById('stopRecording');
+    const trackTitleInput = document.getElementById('trackTitle');
+    const titleDisplay = document.getElementById('track-title-display');
+    const bgColorInput = document.getElementById('bgColor');
+    const albumCoverInput = document.getElementById('albumCover');
 
     // --- Глобальные переменные THREE.js ---
     let scene, camera, renderer;
     let cubes = []; 
+    let albumCube; // Куб для обложки
     const NUM_CUBES = 64; 
     const BAR_SPACING = 0.5; 
-
-    // Размеры контейнера
-    const WIDTH = container.clientWidth;
-    const HEIGHT = container.clientHeight;
     
     // --- Глобальные переменные AUDIO ---
     let audioContext = null;
@@ -27,23 +29,31 @@ document.addEventListener('DOMContentLoaded', () => {
     let mediaRecorder;
     let recordedChunks = [];
 
+    // Вызываем инициализацию 3D-сцены сразу
+    initScene();
 
     // ------------------------------------------------------------------
     // A) ИНИЦИАЛИЗАЦИЯ 3D-СЦЕНЫ
     // ------------------------------------------------------------------
     function initScene() {
+        // Получаем актуальные размеры контейнера 16:9
+        const initialWidth = container.clientWidth;
+        const initialHeight = container.clientHeight;
+        
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0f0f23); 
+        scene.background = new THREE.Color(bgColorInput.value); 
 
-        camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 1000);
+        // Камера
+        camera = new THREE.PerspectiveCamera(75, initialWidth / initialHeight, 0.1, 1000);
         camera.position.set(0, 0, 15); 
         camera.lookAt(0, 0, 0); 
 
+        // Рендерер (preserveDrawingBuffer важен для MediaRecorder)
         renderer = new THREE.WebGLRenderer({ 
             antialias: true,
-            preserveDrawingBuffer: true // ВАЖНО для MediaRecorder
+            preserveDrawingBuffer: true
         });
-        renderer.setSize(WIDTH, HEIGHT);
+        renderer.setSize(initialWidth, initialHeight);
         container.appendChild(renderer.domElement); 
 
         // Добавляем свет
@@ -54,15 +64,24 @@ document.addEventListener('DOMContentLoaded', () => {
         directionalLight.position.set(10, 10, 10);
         scene.add(directionalLight);
         
-        createVisualizerCubes();
+        createAlbumCube(); // Создаем центральный объект
+        createVisualizerCubes(); // Создаем столбики
 
         renderer.render(scene, camera); 
     }
 
+    function createAlbumCube() {
+        // Куб для обложки (размер 3x3x3)
+        const albumGeo = new THREE.BoxGeometry(3, 3, 3);
+        const albumMat = new THREE.MeshPhongMaterial({ color: 0x555555 }); // Серый по умолчанию
+        albumCube = new THREE.Mesh(albumGeo, albumMat);
+        scene.add(albumCube);
+    }
+    
     function createVisualizerCubes() {
         const totalWidth = NUM_CUBES * BAR_SPACING;
         let x = -totalWidth / 2;
-        cubes = []; // Очистка массива
+        cubes = []; // Очистка массива перед созданием
 
         for (let i = 0; i < NUM_CUBES; i++) {
             const geometry = new THREE.BoxGeometry(BAR_SPACING * 0.8, 0.1, 0.1); 
@@ -83,9 +102,49 @@ document.addEventListener('DOMContentLoaded', () => {
             x += BAR_SPACING; 
         }
     }
-    
+
     // ------------------------------------------------------------------
-    // B) ОБРАБОТКА АУДИО И СЛУШАТЕЛИ
+    // B) ЛОГИКА НАСТРОЕК (Название, Цвет, Обложка)
+    // ------------------------------------------------------------------
+
+    // 1. Обновление названия трека
+    trackTitleInput.addEventListener('input', () => {
+        titleDisplay.textContent = trackTitleInput.value;
+    });
+
+    // 2. Обновление цвета фона
+    bgColorInput.addEventListener('input', () => {
+        if (scene) {
+            scene.background.set(bgColorInput.value);
+            renderer.render(scene, camera); 
+        }
+    });
+
+    // 3. Загрузка и применение обложки альбома
+    albumCoverInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const fileURL = URL.createObjectURL(file);
+            const textureLoader = new THREE.TextureLoader();
+            
+            textureLoader.load(fileURL, (texture) => {
+                const material = new THREE.MeshBasicMaterial({ map: texture });
+                
+                albumCube.material.dispose(); // Очищаем старый материал
+                albumCube.material = material;
+                albumCube.material.needsUpdate = true;
+                
+                URL.revokeObjectURL(fileURL);
+            }, undefined, (error) => {
+                console.error('Ошибка загрузки текстуры:', error);
+                alert('Не удалось загрузить изображение обложки.');
+            });
+        }
+    });
+
+
+    // ------------------------------------------------------------------
+    // C) ОБРАБОТКА АУДИО И СЛУШАТЕЛИ
     // ------------------------------------------------------------------
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -100,10 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
             audioSource.controls = true;
             audioSource.loop = false;
             audioSource.src = URL.createObjectURL(file);
-            audioSourceElement = audioSource; // Сохраняем ссылку
+            audioSourceElement = audioSource; 
             
             audioContainer.appendChild(audioSource);
-            startButton.disabled = false; // Активация кнопки записи
+            startButton.disabled = false; 
 
             // --- Инициализация Web Audio API при первом Play ---
             audioSource.addEventListener('play', () => {
@@ -142,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ------------------------------------------------------------------
-    // C) ЦИКЛ РИСОВАНИЯ (СВЯЗЬ АУДИО И THREE.JS)
+    // D) ЦИКЛ РИСОВАНИЯ (СВЯЗЬ АУДИО И THREE.JS)
     // ------------------------------------------------------------------
 
     function draw() {
@@ -159,10 +218,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     cube.scale.y = barHeight > 0.1 ? barHeight : 0.1; 
                     cube.position.y = barHeight / 2; 
 
-                    // Вращение в зависимости от частоты
                     cube.rotation.x += 0.01 + (dataArray[i] / 255) * 0.05;
                 }
             }
+            
+            // Анимация центрального куба (обложки)
+            const bass = dataArray[1] || 0; // Низкие частоты
+            const bassScale = 1 + (bass / 255) * 0.2; 
+            
+            albumCube.scale.set(bassScale, bassScale, bassScale);
+            albumCube.rotation.x += 0.005;
+            albumCube.rotation.y += 0.008;
         }
         
         // Анимация камеры
@@ -174,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // ------------------------------------------------------------------
-    // D) ЛОГИКА ЗАПИСИ ВИДЕО (MediaRecorder API)
+    // E) ЛОГИКА ЗАПИСИ ВИДЕО (MediaRecorder API)
     // ------------------------------------------------------------------
 
     startButton.addEventListener('click', () => {
@@ -183,12 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Получаем поток из Canvas Three.js (renderer.domElement)
-        const stream = renderer.domElement.captureStream(30); // 30 кадров/с
+        // Получаем поток из Canvas Three.js
+        const stream = renderer.domElement.captureStream(30); 
         
         recordedChunks = [];
         
-        // Создаем MediaRecorder
         mediaRecorder = new MediaRecorder(stream, {
             mimeType: 'video/webm; codecs=vp9'
         });
@@ -208,19 +273,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = 'visualizer_video_only.webm'; // Имя файла для скачивания
+            a.download = 'visualizer_video_only.webm'; 
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             
-            // Восстановление состояния кнопок
             startButton.disabled = false;
             stopButton.disabled = true;
         };
 
         mediaRecorder.start();
         
-        // Запускаем музыку и меняем состояние кнопок
         audioSourceElement.play(); 
         startButton.disabled = true;
         stopButton.disabled = false;
@@ -234,11 +297,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ------------------------------------------------------------------
-    // E) ОБРАБОТЧИК ИЗМЕНЕНИЯ РАЗМЕРА ОКНА
+    // F) ОБРАБОТЧИК ИЗМЕНЕНИЯ РАЗМЕРА ОКНА (16:9)
     // ------------------------------------------------------------------
     window.addEventListener('resize', () => {
         const newWidth = container.clientWidth;
-        const newHeight = container.clientHeight;
+        const newHeight = container.clientHeight; // Высота теперь 9/16 от ширины благодаря CSS
         
         if (camera) {
             camera.aspect = newWidth / newHeight;
@@ -249,7 +312,4 @@ document.addEventListener('DOMContentLoaded', () => {
             renderer.setSize(newWidth, newHeight);
         }
     });
-
-    // Инициализация сцены при загрузке страницы
-    initScene();
 });
