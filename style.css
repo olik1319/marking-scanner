@@ -1,29 +1,50 @@
+/* Базовые стили для сброса и фона */
 body {
     display: flex;
     flex-direction: column;
     align-items: center;
     font-family: Arial, sans-serif;
-    background-color: #1a1a2e;
+    background-color: #1a1a2e; /* Темно-фиолетовый фон */
     color: #ffffff;
     padding: 20px;
     margin: 0;
+    min-height: 100vh; /* Занимает всю высоту экрана */
 }
 
 h1 {
     margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Стили для элементов управления */
+#audioFile {
+    margin-bottom: 15px;
 }
 
 #audio-container {
     margin: 15px 0;
 }
 
-#visualizer {
-    /* Фиксированные размеры, которые используются в JS */
+/* Стили для контейнера 3D-визуализации */
+#visualizer-container {
+    /* Фиксированные размеры для 3D-сцены */
     width: 80vw;
-    max-width: 800px;
+    max-width: 800px; /* Максимальная ширина для больших экранов */
     height: 40vh;
-    min-height: 250px;
-    border: 2px solid #00ffff;
-    background-color: #0f0f23;
+    min-height: 250px; /* Минимальная высота, чтобы сцена не исчезла на маленьких экранах */
+    
+    border: 2px solid #00ffff; /* Голубая рамка */
+    background-color: #0f0f23; /* Фон контейнера */
     margin-top: 20px;
+    
+    /* Важно: Скрываем возможные переполнения, если 3D-рендер выйдет за границы */
+    overflow: hidden; 
+}
+
+/* Three.js добавляет <canvas> внутри #visualizer-container. 
+   Этот стиль гарантирует, что Canvas займет 100% контейнера. */
+#visualizer-container canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
