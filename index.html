@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Audio Визуализатор (Полный код)</title>
+    <title>3D Web Audio Визуализатор (Three.js)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>Web Audio Визуализатор (Загрузка файла)</h1>
+    <h1>3D Web Audio Визуализатор (Загрузка файла)</h1>
 
     <input type="file" id="audioFile" accept="audio/*">
     
-    <div id="audio-container">
-        </div> 
+    <div id="audio-container"></div> 
 
-    <canvas id="visualizer"></canvas>
+    <div id="visualizer-container"></div> 
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script src="visualizer.js"></script>
 
