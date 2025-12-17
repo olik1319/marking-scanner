@@ -8,13 +8,19 @@
 </head>
 <body>
 
-    <h1>3D Web Audio Визуализатор (Загрузка файла)</h1>
+    <h1>3D Web Audio Визуализатор (Three.js)</h1>
 
     <input type="file" id="audioFile" accept="audio/*">
     
     <div id="audio-container"></div> 
-
+    
     <div id="visualizer-container"></div> 
+    
+    <div id="controls">
+        <button id="startRecording" disabled>Начать запись (только видео)</button>
+        <button id="stopRecording" disabled>Остановить и скачать</button>
+        <p class="warning">Примечание: Это скачает только видеофайл без звуковой дорожки. Для синхронизации используйте внешние программы.</p>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
