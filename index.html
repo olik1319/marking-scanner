@@ -7,10 +7,11 @@
 </head>
 <body>
 
-    <h1>Простой Web Audio Визуализатор</h1>
+    <h1>Web Audio Визуализатор (Загрузка файла)</h1>
 
-    <audio id="audioElement" controls src="[ПУТЬ_К_ВАШЕМУ_АУДИОФАЙЛУ]"></audio>
-    <p>Замените "[ПУТЬ_К_ВАШЕМУ_АУДИОФАЙЛУ]" на реальный файл (например, test.mp3).</p>
+    <input type="file" id="audioFile" accept="audio/*">
+    
+    <button id="startButton" disabled>Начать визуализацию</button>
 
     <canvas id="visualizer"></canvas>
 
