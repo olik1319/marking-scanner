@@ -3,33 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Счетчик Очков "Мальчики vs Девочки"</title>
+    <title>⚡ MEGA CHALLENGE HUB ⚡</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Битва Команд: Мальчики vs Девочки</h1>
-
-        <div class="scoreboard">
+    
+    <div class="app-container">
+        
+        <div id="game-screen" class="screen active">
             
-            <div class="team" id="boys-team">
-                <h2>Мальчики 👦</h2>
-                <div class="score" id="boys-score">0</div>
-                <button onclick="addPoint('boys')">+1 Очко</button>
+            <header>
+                <h1>⚡ MEGA CHALLENGE HUB ⚡</h1>
+                <div class="status-bar">
+                    <span class="indicator red"></span>
+                    <span class="indicator blue"></span>
+                    <span class="timer">⏳ 00:00:00</span>
+                </div>
+            </header>
+            
+            <div class="scoreboard-title">Битва Команд: Мальчики vs Девочки</div>
+
+            <div class="scoreboard">
+                
+                <div class="team boys-team">
+                    <h2>Мальчики 👦</h2>
+                    <div class="score" id="boys-score">0</div>
+                    <button class="score-btn" onclick="addPoint('boys')">+1 Очко</button>
+                    <div class="points-label">Текущий Счет</div>
+                </div>
+
+                <div class="team girls-team">
+                    <h2>Девочки 👧</h2>
+                    <div class="score" id="girls-score">0</div>
+                    <button class="score-btn" onclick="addPoint('girls')">+1 Очко</button>
+                    <div class="points-label">Текущий Счет</div>
+                </div>
+
             </div>
 
-            <div class="team" id="girls-team">
-                <h2>Девочки 👧</h2>
-                <div class="score" id="girls-score">0</div>
-                <button onclick="addPoint('girls')">+1 Очко</button>
-            </div>
-
+            <button class="finish-game-btn" onclick="showResults()">
+                FINISH GAME & SEE RESULTS
+            </button>
+            
         </div>
+        
+        <div id="results-screen" class="screen">
+            <h2 class="results-title">🏆 ИТОГИ ЧЕЛЛЕНДЖА 🏆</h2>
+            <div class="winner-display" id="final-winner">
+                </div>
+            
+            <div class="summary-stats">
+                <div id="boys-summary" class="stat-box boys-color"></div>
+                <div id="girls-summary" class="stat-box girls-color"></div>
+            </div>
 
-        <button class="reset-button" onclick="resetGame()">Начать игру заново</button>
-
-        <div class="winner-display" id="winner-display">
-            Кто наберёт 10 очков первым?
+            <button class="reset-btn" onclick="resetGame()">НАЧАТЬ НОВУЮ БИТВУ</button>
         </div>
         
     </div>
