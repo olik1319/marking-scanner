@@ -1,20 +1,18 @@
 // Файл script.js
 let boysScore = 0;
 let girlsScore = 0;
-const winningScore = 10; // Цель для победы
 
+const gameScreen = document.getElementById('game-screen');
+const resultsScreen = document.getElementById('results-screen');
 const boysScoreEl = document.getElementById('boys-score');
 const girlsScoreEl = document.getElementById('girls-score');
-const winnerDisplay = document.getElementById('winner-display');
-const buttons = document.querySelectorAll('.scoreboard button');
+const finalWinnerEl = document.getElementById('final-winner');
+const boysSummaryEl = document.getElementById('boys-summary');
+const girlsSummaryEl = document.getElementById('girls-summary');
 
-// Функция для добавления очка
+
+// Функция добавления очка
 function addPoint(team) {
-    if (winnerDisplay.hasAttribute('data-winner')) {
-        // Если победитель уже объявлен, очки не добавляются
-        return;
-    }
-
     if (team === 'boys') {
         boysScore++;
         boysScoreEl.textContent = boysScore;
@@ -22,60 +20,65 @@ function addPoint(team) {
         girlsScore++;
         girlsScoreEl.textContent = girlsScore;
     }
+}
+
+// Функция для переключения на экран результатов
+function showResults() {
+    // 1. Скрываем основной экран и показываем экран результатов
+    gameScreen.classList.remove('active');
+    resultsScreen.classList.add('active');
+
+    // 2. Определяем победителя
+    let winnerText;
+    let winnerTeam;
+    let winnerEmoji;
+
+    if (boysScore > girlsScore) {
+        winnerTeam = 'Мальчики';
+        winnerEmoji = '🏆👦';
+    } else if (girlsScore > boysScore) {
+        winnerTeam = 'Девочки';
+        winnerEmoji = '🏆👧';
+    } else {
+        winnerTeam = 'НИЧЬЯ';
+        winnerEmoji = '🤝';
+    }
+
+    // 3. Формируем красивый вывод
+    finalWinnerEl.innerHTML = `
+        ${winnerEmoji} ${winnerTeam} ПОБЕЖДАЮТ! ${winnerEmoji}
+    `;
     
-    checkWinner();
+    // 4. Заполняем статистику
+    boysSummaryEl.innerHTML = `
+        <h3>Мальчики 👦</h3>
+        <p>Счет: <strong>${boysScore}</strong></p>
+        <p>Результат: ${boysScore > girlsScore ? 'Победа!' : boysScore === girlsScore ? 'Ничья' : 'Поражение'}</p>
+    `;
+    
+    girlsSummaryEl.innerHTML = `
+        <h3>Девочки 👧</h3>
+        <p>Счет: <strong>${girlsScore}</strong></p>
+        <p>Результат: ${girlsScore > boysScore ? 'Победа!' : boysScore === girlsScore ? 'Ничья' : 'Поражение'}</p>
+    `;
 }
 
-// Функция проверки победителя и эффектного вывода
-function checkWinner() {
-    let winnerName = null;
-
-    if (boysScore >= winningScore) {
-        winnerName = 'Мальчики 👦';
-    } else if (girlsScore >= winningScore) {
-        winnerName = 'Девочки 👧';
-    }
-
-    if (winnerName) {
-        // Устанавливаем атрибут, чтобы заблокировать добавление очков
-        winnerDisplay.setAttribute('data-winner', winnerName); 
-        
-        // Красивый вывод
-        winnerDisplay.innerHTML = `
-            <span class="confetti">🎉</span> 
-            ПОБЕДИТЕЛИ: ${winnerName}
-            <span class="confetti">🎉</span>
-        `;
-        winnerDisplay.classList.add('active'); // Активируем стили победы
-        disableButtons();
-    }
-}
-
-// Функция для блокировки кнопок
-function disableButtons() {
-    buttons.forEach(button => {
-        button.disabled = true;
-    });
-}
 
 // Функция для сброса игры
 function resetGame() {
+    // Сброс счёта
     boysScore = 0;
     girlsScore = 0;
     boysScoreEl.textContent = 0;
     girlsScoreEl.textContent = 0;
 
-    winnerDisplay.removeAttribute('data-winner');
-    winnerDisplay.textContent = 'Кто наберёт 10 очков первым?';
-    winnerDisplay.classList.remove('active');
-
-    buttons.forEach(button => {
-        button.disabled = false;
-    });
+    // Сброс экрана
+    resultsScreen.classList.remove('active');
+    gameScreen.classList.add('active');
 }
 
-// Инициализация при загрузке страницы
+// Инициализация
 document.addEventListener('DOMContentLoaded', () => {
-    // Устанавливаем начальный текст
+    // Начальный сброс для уверенности в старте
     resetGame(); 
 });
