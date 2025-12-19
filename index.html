@@ -3,33 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Web Audio Визуализатор (Three.js)</title>
-    <link rel="stylesheet" href="style.css">
-</head>
+    <title>Счетчик Очков "Мальчики vs Девочки"</title>
+    <link rel="stylesheet" href="style.css"> </head>
 <body>
+    <div class="container">
+        <h1>Битва Команд: Мальчики vs Девочки</h1>
 
-    <h1>3D Web Audio Визуализатор (Three.js)</h1>
-    
-    <div id="settings-controls">
-        <label for="trackTitle">Название трека:</label>
-        <input type="text" id="trackTitle" value="Моя Музыка" maxlength="50">
+        <div class="scoreboard">
+            
+            <div class="team" id="boys-team">
+                <h2>Мальчики 👦</h2>
+                <div class="score" id="boys-score">0</div>
+                <button onclick="addPoint('boys')">+1 Очко</button>
+            </div>
+
+            <div class="team" id="girls-team">
+                <h2>Девочки 👧</h2>
+                <div class="score" id="girls-score">0</div>
+                <button onclick="addPoint('girls')">+1 Очко</button>
+            </div>
+
+        </div>
+
+        <div class="winner-display" id="winner-display">
+            </div>
         
-        <label for="bgColor">Цвет фона:</label>
-        <input type="color" id="bgColor" value="#0f0f23"> 
-        
-        <label for="albumCover">Обложка (изображение):</label>
-        <input type="file" id="albumCover" accept="image/*">
     </div>
 
-    <input type="file" id="audioFile" accept="audio/*">
-    <div id="audio-container"></div> 
-    
-    <div id="track-title-display">Моя Музыка</div>
-
-    <div id="visualizer-container"></div> 
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="visualizer.js"></script>
-
-</body>
+    <script src="script.js"></script> </body>
 </html>
