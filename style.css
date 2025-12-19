@@ -1,45 +1,133 @@
-/* Пример очень простого CSS для старта в файле style.css */
+/* Файл style.css */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     margin: 0;
-    background-color: #f4f4f9; /* Светлый фон */
+    background: linear-gradient(135deg, #f0f0f5, #e0e0e9); /* Градиентный фон */
+    color: #333;
+}
+
+.container {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+    color: #4a4a4a;
+    margin-bottom: 30px;
 }
 
 .scoreboard {
     display: flex;
-    gap: 40px;
-    padding: 30px;
-    background-color: white;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
+    gap: 50px;
+    margin-bottom: 30px;
 }
 
 .team {
     text-align: center;
-    padding: 20px;
-    border-radius: 8px;
-    min-width: 150px;
+    padding: 30px;
+    border-radius: 12px;
+    min-width: 180px;
+    transition: transform 0.3s ease;
 }
 
-#boys-team { background-color: #a0c4ff; } /* Голубой для мальчиков */
-#girls-team { background-color: #ffc7d4; } /* Розовый для девочек */
+.team:hover {
+    transform: translateY(-5px);
+}
+
+#boys-team { 
+    background-color: #d1e7ff; /* Светло-голубой */
+    border: 2px solid #007bff;
+} 
+#girls-team { 
+    background-color: #ffd1e7; /* Светло-розовый */
+    border: 2px solid #ff4081;
+} 
 
 .score {
-    font-size: 4em;
-    font-weight: bold;
+    font-size: 5em;
+    font-weight: 700;
     margin: 10px 0;
+    line-height: 1;
 }
 
-/* Стили для объявления победителя */
-.winner-display {
-    margin-top: 30px;
-    font-size: 2em;
+button {
+    padding: 10px 20px;
+    font-size: 1.1em;
     font-weight: bold;
-    color: #4CAF50; /* Зеленый цвет для победы */
-    text-align: center;
-    /* Здесь можно добавить анимацию или красивую рамку */
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+/* Кнопки очков */
+#boys-team button {
+    background-color: #007bff;
+    color: white;
+}
+#girls-team button {
+    background-color: #ff4081;
+    color: white;
+}
+
+button:hover:not(:disabled) {
+    transform: scale(1.05);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Кнопка сброса */
+.reset-button {
+    background-color: #28a745; /* Зеленый */
+    color: white;
+    margin-bottom: 25px;
+}
+
+/* Объявление победителя - самый красивый блок */
+.winner-display {
+    padding: 20px;
+    font-size: 1.5em;
+    font-weight: 900;
+    color: #333;
+    background-color: #fffacd; /* Светло-желтый фон */
+    border-radius: 10px;
+    border: 3px dashed #ffc107;
+    transition: all 0.5s ease-in-out;
+}
+
+.winner-display.active {
+    /* Эффект при победе */
+    background: linear-gradient(45deg, #ffeb3b, #ffc107);
+    color: #a52a2a; /* Темно-красный текст */
+    font-size: 2.2em;
+    border-style: solid;
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.8);
+    animation: pulse 1s infinite alternate;
+}
+
+.confetti {
+    font-size: 1.5em;
+    margin: 0 10px;
+}
+
+/* Анимация пульсации для победителя */
+@keyframes pulse {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(1.03);
+    }
 }
